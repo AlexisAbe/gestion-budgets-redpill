@@ -1,8 +1,18 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { MoreVertical, BarChart, Database, Trash2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Menu, BarChart3, Filter, Minimize2, PanelLeftOpen, Trash2 } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { EditCampaignForm } from './EditCampaignForm';
+import { useCampaignStore } from '@/store/campaignStore';
 
 interface CampaignActionsProps {
   campaignId: string;
@@ -11,7 +21,7 @@ interface CampaignActionsProps {
   showInlineAdSets: boolean;
   onToggleChart: (campaignId: string) => void;
   onToggleInlineAdSets: (campaignId: string) => void;
-  onDeleteCampaign: (id: string) => void;
+  onDeleteCampaign: (id: string) => Promise<void>;
   onOpenDistribution: () => void;
   onOpenAdSetManager: () => void;
   onToggleAdSets: () => void;
@@ -31,63 +41,95 @@ export function CampaignActions({
   onToggleAdSets,
   showAdSets
 }: CampaignActionsProps) {
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const { campaigns } = useCampaignStore();
+  
+  // Find the campaign from the store
+  const campaign = campaigns.find(c => c.id === campaignId);
+  
+  if (!campaign) {
+    return <div>Campaign not found</div>;
+  }
+  
   return (
-    <div className="flex items-center justify-end gap-1">
-      <Button 
-        variant="ghost" 
-        size="icon"
-        onClick={() => onToggleChart(campaignId)}
-        title={showChart ? "Hide chart" : "Show chart"}
-      >
-        {showChart ? (
-          <Minimize2 className="h-4 w-4" />
-        ) : (
-          <BarChart3 className="h-4 w-4" />
-        )}
-      </Button>
-
-      <Button 
-        variant="ghost" 
-        size="icon"
-        onClick={() => onToggleInlineAdSets(campaignId)}
-        title={showInlineAdSets ? "Hide ad sets" : "Show ad sets inline"}
-        className={showInlineAdSets ? "bg-primary/10" : ""}
-      >
-        <Filter className="h-4 w-4" />
-      </Button>
-      
+    <div className="flex justify-end">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <Menu className="h-4 w-4" />
+          <Button variant="ghost" size="sm">
+            <MoreVertical className="h-4 w-4" />
+            <span className="sr-only">Actions</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Modifier
+          </DropdownMenuItem>
+          
           <DropdownMenuItem onClick={onOpenDistribution}>
-            <PanelLeftOpen className="mr-2 h-4 w-4" />
-            Distribute Budget
+            <Database className="mr-2 h-4 w-4" />
+            Distribution du budget
           </DropdownMenuItem>
+          
           <DropdownMenuItem onClick={onOpenAdSetManager}>
-            <Filter className="mr-2 h-4 w-4" />
-            Gérer les sous-ensembles
+            <Database className="mr-2 h-4 w-4" />
+            Sous-ensembles
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onToggleAdSets}>
-            <Filter className="mr-2 h-4 w-4" />
-            {showAdSets ? "Masquer les sous-ensembles" : "Afficher les sous-ensembles"}
+          
+          <DropdownMenuItem onClick={() => onToggleInlineAdSets(campaignId)}>
+            <Database className="mr-2 h-4 w-4" />
+            {showInlineAdSets ? "Masquer les sous-ensembles" : "Afficher les sous-ensembles"}
           </DropdownMenuItem>
-          <DropdownMenuItem 
-            className="text-destructive focus:text-destructive"
-            onClick={() => {
-              if (window.confirm(`Êtes-vous sûr de vouloir supprimer la campagne "${campaignName}" ?`)) {
-                onDeleteCampaign(campaignId);
-              }
-            }}
-          >
+          
+          <DropdownMenuItem onClick={() => onToggleChart(campaignId)}>
+            <BarChart className="mr-2 h-4 w-4" />
+            {showChart ? "Masquer le graphique" : "Afficher le graphique"}
+          </DropdownMenuItem>
+          
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuItem onClick={() => setIsDeleteOpen(true)} className="text-red-600">
             <Trash2 className="mr-2 h-4 w-4" />
-            Delete Campaign
+            Supprimer
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cette campagne ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action ne peut pas être annulée. Cela supprimera définitivement la campagne
+              <strong> {campaignName} </strong>
+              et toutes les données associées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-600 hover:bg-red-700"
+              onClick={async () => {
+                await onDeleteCampaign(campaignId);
+                setIsDeleteOpen(false);
+              }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Edit Campaign Form Dialog */}
+      <EditCampaignForm 
+        campaign={campaign}
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+      />
     </div>
   );
 }

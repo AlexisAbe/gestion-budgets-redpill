@@ -1,4 +1,3 @@
-
 import { Campaign } from '@/types/campaign';
 import { supabase } from '@/integrations/supabase/client';
 import { mapToSupabaseCampaign, mapToCampaign } from '@/utils/supabaseUtils';
