@@ -53,12 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string) => {
     try {
-      const { error } = await supabase.auth.signInWithOtp({ 
+      // Using signInWithOtp but will create a session immediately
+      const { data, error } = await supabase.auth.signInWithOtp({ 
         email,
         options: {
           shouldCreateUser: true,
-          // Utiliser l'URL de l'application actuelle pour la redirection
-          emailRedirectTo: window.location.origin,
         }
       });
       
@@ -67,7 +66,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
       
-      toast.success("Un lien de connexion a été envoyé à votre email");
+      // Success - user will be automatically logged in via auth state change
+      toast.success("Connexion réussie");
+      navigate('/');
     } catch (error) {
       console.error('Sign in error:', error);
       throw error;
@@ -76,15 +77,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, fullName: string) => {
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           shouldCreateUser: true,
           data: {
             full_name: fullName,
           },
-          // Utiliser l'URL de l'application actuelle pour la redirection
-          emailRedirectTo: window.location.origin,
         }
       });
       
@@ -93,7 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
       
-      toast.success("Un lien de connexion a été envoyé à votre email");
+      // Success - user will be automatically logged in via auth state change
+      toast.success("Inscription réussie");
+      navigate('/');
     } catch (error) {
       console.error('Sign up error:', error);
       throw error;

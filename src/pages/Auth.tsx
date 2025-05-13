@@ -91,12 +91,12 @@ const Auth = () => {
                 </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}
                 <p className="text-sm text-muted-foreground">
-                  Un lien de connexion vous sera envoyé par email
+                  Vous serez connecté directement après avoir saisi votre email
                 </p>
               </CardContent>
               <CardFooter>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Envoi du lien..." : "Connexion"}
+                  {isLoading ? "Connexion en cours..." : "Connexion"}
                 </Button>
               </CardFooter>
             </form>
@@ -127,12 +127,12 @@ const Auth = () => {
                 </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}
                 <p className="text-sm text-muted-foreground">
-                  Un lien de connexion vous sera envoyé par email
+                  Vous serez inscrit et connecté directement après avoir saisi vos informations
                 </p>
               </CardContent>
               <CardFooter>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Envoi du lien..." : "Inscription"}
+                  {isLoading ? "Inscription en cours..." : "Inscription"}
                 </Button>
               </CardFooter>
             </form>
