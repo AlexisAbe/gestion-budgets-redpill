@@ -2,7 +2,7 @@
 import { Campaign } from '@/types/campaign';
 import { WeeklyView } from '@/utils/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { mapToSupabaseCampaign, formatSupabaseError } from '@/utils/supabaseUtils';
+import { mapToSupabaseCampaign, mapToCampaign, formatSupabaseError } from '@/utils/supabaseUtils';
 import { isBudgetBalanced, distributeEvenlyAcrossWeeks } from '@/utils/budgetUtils';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
