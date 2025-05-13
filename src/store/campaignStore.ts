@@ -29,7 +29,8 @@ const initialState = {
   error: null,
 };
 
-export const useCampaignStore = create<CampaignState>((set, get) => {
+// Fix type issues with create function by adjusting return type and updating addCampaign
+export const useCampaignStore = create<CampaignState>()((set, get) => {
   return {
     ...initialState,
     
@@ -58,6 +59,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => {
       }
     },
     
+    // Fix return type from string to Campaign | null to match interface
     addCampaign: async (campaignData) => {
       const { selectedClientId } = useClientStore.getState();
       if (!selectedClientId) {
@@ -72,14 +74,24 @@ export const useCampaignStore = create<CampaignState>((set, get) => {
       };
       
       try {
-        const newCampaign = await addCampaignService(campaignWithClient);
+        const newCampaignId = await addCampaignService(campaignWithClient);
         
-        if (newCampaign) {
-          set(state => ({
-            campaigns: [...state.campaigns, newCampaign],
-            filteredCampaigns: [...state.filteredCampaigns, newCampaign]
-          }));
-          return newCampaign;
+        if (newCampaignId) {
+          // Fetch the full campaign data to return a proper Campaign object
+          const { campaigns } = get();
+          const newCampaign = campaigns.find(c => c.id === newCampaignId);
+          
+          if (newCampaign) {
+            set(state => ({
+              campaigns: [...state.campaigns, newCampaign],
+              filteredCampaigns: [...state.filteredCampaigns, newCampaign]
+            }));
+            return newCampaign;
+          }
+          
+          // If not found in state yet, refresh campaigns
+          await get().fetchCampaigns();
+          return get().campaigns.find(c => c.id === newCampaignId) || null;
         }
         return null;
       } catch (error) {
@@ -124,8 +136,6 @@ export const useCampaignStore = create<CampaignState>((set, get) => {
     
     updateWeeklyBudget: async (campaignId, weekLabel, amount) => {
       try {
-        // Fix error: Expected 2 arguments, but got 1
-        // Now passing both campaignId and the needed data
         await updateWeeklyBudgetService(campaignId, weekLabel, amount);
         
         set(state => ({
@@ -181,11 +191,9 @@ export const useCampaignStore = create<CampaignState>((set, get) => {
     
     autoDistributeBudget: async (campaignId, distributionStrategy, percentages) => {
       try {
-        // Fix error: Argument of type 'string' is not assignable to parameter of type '"even" | "front-loaded" | "back-loaded" | "bell-curve" | "manual"'
-        // We need to cast distributionStrategy to the expected type since we've properly typed the function parameters
         await autoDistributeBudgetService(
           campaignId, 
-          distributionStrategy as 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual',
+          distributionStrategy,
           get().campaigns, 
           get().weeks, 
           percentages
@@ -216,16 +224,13 @@ export const useCampaignStore = create<CampaignState>((set, get) => {
   };
 });
 
-// Fix error: Expected 1 arguments, but got 2
-// The subscribe method should take a single callback function
-useClientStore.subscribe(
-  (state) => {
-    const { selectedClientId } = state;
-    const campaignStore = useCampaignStore.getState();
-    const filteredCampaigns = selectedClientId 
-      ? campaignStore.campaigns.filter(campaign => campaign.clientId === selectedClientId)
-      : campaignStore.campaigns;
-      
-    useCampaignStore.setState({ filteredCampaigns });
-  }
-);
+// Fix the Zustand subscription to take only one callback function
+useClientStore.subscribe((state) => {
+  const { selectedClientId } = state;
+  const campaignStore = useCampaignStore.getState();
+  const filteredCampaigns = selectedClientId 
+    ? campaignStore.campaigns.filter(campaign => campaign.clientId === selectedClientId)
+    : campaignStore.campaigns;
+    
+  useCampaignStore.setState({ filteredCampaigns });
+});
