@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { PlusCircle } from 'lucide-react';
 
 export function AddCampaignForm() {
-  const { addCampaign } = useCampaignStore();
+  const { addCampaign, isLoading } = useCampaignStore();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     mediaChannel: 'META' as MediaChannel,
@@ -67,39 +67,55 @@ export function AddCampaignForm() {
   };
 
   const handleSubmit = async () => {
-    if (validateForm()) {
-      setIsSubmitting(true);
-      
-      try {
-        await addCampaign({
-          ...formData,
-          weeklyBudgets: {}
-        });
-        
-        // Reset form and close dialog
-        setFormData({
-          mediaChannel: 'META' as MediaChannel,
-          name: '',
-          objective: 'awareness' as MarketingObjective,
-          targetAudience: '',
-          startDate: new Date().toISOString().split('T')[0],
-          totalBudget: 0,
-          durationDays: 30,
-        });
-        setOpen(false);
-      } catch (error) {
-        console.error('Submit error:', error);
-        toast.error('Erreur lors de l\'ajout de la campagne');
-      } finally {
-        setIsSubmitting(false);
-      }
-    } else {
+    if (!validateForm()) {
       toast.error('Veuillez corriger les erreurs du formulaire avant de soumettre');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Create initial weekly budgets - evenly distribute the total
+      const weeklyAmount = Math.floor(formData.totalBudget / 5);
+      const weeklyBudgets = {
+        "S19": weeklyAmount,
+        "S20": weeklyAmount,
+        "S21": weeklyAmount,
+        "S22": weeklyAmount,
+        "S23": formData.totalBudget - (weeklyAmount * 4) // Remainder to last week
+      };
+
+      await addCampaign({
+        ...formData,
+        weeklyBudgets
+      });
+      
+      // Reset form and close dialog on success
+      setFormData({
+        mediaChannel: 'META' as MediaChannel,
+        name: '',
+        objective: 'awareness' as MarketingObjective,
+        targetAudience: '',
+        startDate: new Date().toISOString().split('T')[0],
+        totalBudget: 0,
+        durationDays: 30,
+      });
+      
+      toast.success('Campagne créée avec succès');
+      setOpen(false);
+    } catch (error) {
+      console.error('Submit error:', error);
+      toast.error('Erreur lors de l\'ajout de la campagne');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      if (isSubmitting) return; // Prevent closing while submitting
+      setOpen(newOpen);
+    }}>
       <DialogTrigger asChild>
         <Button className="flex gap-2">
           <PlusCircle className="h-4 w-4" />
@@ -117,6 +133,7 @@ export function AddCampaignForm() {
               <Select 
                 value={formData.mediaChannel} 
                 onValueChange={(value) => handleInputChange('mediaChannel', value as MediaChannel)}
+                disabled={isSubmitting}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select media channel" />
@@ -137,6 +154,7 @@ export function AddCampaignForm() {
               <Select 
                 value={formData.objective} 
                 onValueChange={(value) => handleInputChange('objective', value as MarketingObjective)}
+                disabled={isSubmitting}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select objective" />
@@ -159,6 +177,7 @@ export function AddCampaignForm() {
               value={formData.name} 
               onChange={(e) => handleInputChange('name', e.target.value)}
               className={formErrors.name ? 'border-red-500' : ''}
+              disabled={isSubmitting}
             />
             {formErrors.name && (
               <p className="text-sm text-red-500">{formErrors.name}</p>
@@ -173,6 +192,7 @@ export function AddCampaignForm() {
               onChange={(e) => handleInputChange('targetAudience', e.target.value)}
               className={formErrors.targetAudience ? 'border-red-500' : ''}
               placeholder="e.g., Families with children 5-12"
+              disabled={isSubmitting}
             />
             {formErrors.targetAudience && (
               <p className="text-sm text-red-500">{formErrors.targetAudience}</p>
@@ -188,6 +208,7 @@ export function AddCampaignForm() {
                 value={formData.startDate} 
                 onChange={(e) => handleInputChange('startDate', e.target.value)}
                 className={formErrors.startDate ? 'border-red-500' : ''}
+                disabled={isSubmitting}
               />
               {formErrors.startDate && (
                 <p className="text-sm text-red-500">{formErrors.startDate}</p>
@@ -202,6 +223,7 @@ export function AddCampaignForm() {
                 value={formData.durationDays} 
                 onChange={(e) => handleInputChange('durationDays', parseInt(e.target.value))}
                 className={formErrors.durationDays ? 'border-red-500' : ''}
+                disabled={isSubmitting}
               />
               {formErrors.durationDays && (
                 <p className="text-sm text-red-500">{formErrors.durationDays}</p>
@@ -218,6 +240,7 @@ export function AddCampaignForm() {
               value={formData.totalBudget} 
               onChange={(e) => handleInputChange('totalBudget', parseInt(e.target.value))}
               className={formErrors.totalBudget ? 'border-red-500' : ''}
+              disabled={isSubmitting}
             />
             {formErrors.totalBudget && (
               <p className="text-sm text-red-500">{formErrors.totalBudget}</p>

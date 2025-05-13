@@ -13,4 +13,3 @@ anon_role = "anon"
 [[postgres_config.tables]]
 name = "campaigns"
 rls_enabled = false
-

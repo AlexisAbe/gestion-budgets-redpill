@@ -45,3 +45,16 @@ export function mapToSupabaseCampaign(campaign: Omit<Campaign, "id" | "createdAt
     weekly_budgets: campaign.weeklyBudgets
   };
 }
+
+// Helper function to validate/generate UUID
+export function getValidUUID(possibleUUID: string | null | undefined): string | null {
+  // Check if it's already a valid UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  
+  if (possibleUUID && uuidRegex.test(possibleUUID)) {
+    return possibleUUID;
+  }
+  
+  // Return null if invalid and no generation is needed
+  return null;
+}

@@ -1,8 +1,7 @@
-
 import { Campaign } from '@/types/campaign';
 import { WeeklyView } from '@/utils/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { mapToCampaign, mapToSupabaseCampaign } from '@/utils/supabaseUtils';
+import { mapToCampaign, mapToSupabaseCampaign, getValidUUID } from '@/utils/supabaseUtils';
 import { isBudgetBalanced, distributeEvenlyAcrossWeeks } from '@/utils/budgetUtils';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -42,15 +41,23 @@ export async function addCampaignService(
       );
     }
     
-    // Get the current user from localStorage
-    const storedUser = localStorage.getItem('selectedUser');
-    let userId = null;
+    // Generate a fallback UUID instead of relying on localStorage
+    let userId = uuidv4();
     
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      // Generate a valid UUID if the ID is not already in UUID format
-      // This ensures compatibility with Supabase's UUID expectations
-      userId = user.id.length === 36 ? user.id : uuidv4();
+    // Try to get the user from localStorage but have a fallback
+    try {
+      const storedUser = localStorage.getItem('selectedUser');
+      
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        // Only use the user ID if it's a valid UUID format
+        const validUUID = getValidUUID(user.id);
+        if (validUUID) {
+          userId = validUUID;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not parse user from localStorage, using generated UUID', e);
     }
     
     // Convert to snake_case for Supabase
@@ -68,12 +75,15 @@ export async function addCampaignService(
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase insert error:', error);
+      throw error;
+    }
     
     // Convert from snake_case to our frontend type
     const newCampaign = mapToCampaign(data);
     
-    console.log(`Campaign "${newCampaign.name}" added`, newCampaign);
+    console.log(`Campaign "${newCampaign.name}" added successfully`, newCampaign);
     
     // Check if budget is balanced
     const balanced = isBudgetBalanced(newCampaign);
