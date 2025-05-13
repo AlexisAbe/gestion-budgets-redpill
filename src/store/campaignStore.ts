@@ -82,7 +82,9 @@ export const useCampaignStore = create<CampaignState>()((set, get) => {
           const newCampaign = campaigns.find(c => c.id === newCampaignId);
           
           if (newCampaign) {
-            set(state => ({
+            // Fix: Expected 2 arguments, but got 1
+            // Pass the entire state updater function as a single argument
+            set((state) => ({
               campaigns: [...state.campaigns, newCampaign],
               filteredCampaigns: [...state.filteredCampaigns, newCampaign]
             }));
@@ -138,7 +140,9 @@ export const useCampaignStore = create<CampaignState>()((set, get) => {
       try {
         await updateWeeklyBudgetService(campaignId, weekLabel, amount);
         
-        set(state => ({
+        // Fix: Expected 2 arguments, but got 1
+        // Pass the entire state updater function as a single argument
+        set((state) => ({
           campaigns: state.campaigns.map(campaign => {
             if (campaign.id === campaignId) {
               return {

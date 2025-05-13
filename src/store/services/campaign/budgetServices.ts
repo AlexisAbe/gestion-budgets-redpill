@@ -25,9 +25,9 @@ export async function updateWeeklyBudgetService(
       return supabaseService.handleError(error, 'Campaign not found');
     }
     
-    const campaign = data;
+    const campaign = data as Campaign;
     
-    const newWeeklyBudgets = { ...campaign.weekly_budgets };
+    const newWeeklyBudgets = { ...campaign.weeklyBudgets };
     
     // Update the budget for the specified week
     newWeeklyBudgets[weekLabel] = amount;
