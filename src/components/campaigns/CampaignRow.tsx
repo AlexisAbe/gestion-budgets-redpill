@@ -1,19 +1,18 @@
 
 import React, { useState } from 'react';
-import { Campaign } from '@/types/campaign';
-import { WeeklyView } from '@/utils/dateUtils';
-import { WeeklyBudgetInput } from '@/components/ui/WeeklyBudgetInput';
-import { BudgetDistributionModal } from '@/components/ui/BudgetDistributionModal';
-import { Button } from '@/components/ui/button';
-import { formatCurrency, isBudgetBalanced, getUnallocatedBudget } from '@/utils/budgetUtils';
-import { formatDate } from '@/utils/dateUtils';
-import { AlertCircle, Check, Sliders, BarChartIcon, Pencil, Save } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Badge } from '@/components/ui/badge';
-import { ActualBudgetInput } from './ActualBudgetInput';
-import { Input } from '@/components/ui/input';
+import { Campaign, WeeklyView } from '@/types/campaign';
 import { useCampaignStore } from '@/store/campaignStore';
-import { toast } from '@/hooks/use-toast';
+import { formatDate } from '@/utils/dateUtils';
+import { formatCurrency } from '@/utils/budgetUtils';
+import { WeeklyBudgetInput } from '@/components/ui/WeeklyBudgetInput';
+import { ActualBudgetInput } from '@/components/campaigns/ActualBudgetInput';
+import { Button } from '@/components/ui/button';
+import { Menu } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { BudgetDistributionModal } from '@/components/ui/BudgetDistributionModal';
+import { BarChart3, Trash2, PanelLeftOpen, Minimize2, Filter } from 'lucide-react';
+import { getCampaignWeeks } from '@/utils/dateUtils';
+import { AdSetManager } from '@/components/adSets/AdSetManager';
 
 interface CampaignRowProps {
   campaign: Campaign;
@@ -23,179 +22,156 @@ interface CampaignRowProps {
 }
 
 export function CampaignRow({ campaign, weeks, onToggleChart, showChart }: CampaignRowProps) {
-  const { updateCampaign } = useCampaignStore();
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [campaignName, setCampaignName] = useState(campaign.name);
-  const isBalanced = isBudgetBalanced(campaign);
-  const unallocatedBudget = getUnallocatedBudget(campaign);
+  const { deleteCampaign, updateWeeklyBudget } = useCampaignStore();
+  const [isDistributionOpen, setIsDistributionOpen] = useState(false);
+  const [isAdSetManagerOpen, setIsAdSetManagerOpen] = useState(false);
   
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCampaignName(e.target.value);
-  };
-
-  const handleSaveName = async () => {
-    if (campaignName.trim() === '') {
-      toast({
-        title: "Erreur",
-        description: "Le nom de la campagne ne peut pas être vide",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      await updateCampaign(campaign.id, { name: campaignName });
-      setIsEditingName(false);
-      toast({
-        title: "Succès",
-        description: "Nom de la campagne mis à jour",
-        variant: "default"
-      });
-    } catch (error) {
-      console.error('Error updating campaign name:', error);
-      toast({
-        title: "Erreur",
-        description: "Erreur lors de la mise à jour du nom de la campagne",
-        variant: "destructive"
-      });
+  // Get campaign weeks (which weeks this campaign runs in)
+  const campaignWeeks = getCampaignWeeks(campaign.startDate, campaign.durationDays, weeks);
+  
+  // Find the appropriate CSS class based on media channel
+  const getMediaChannelClass = (channel: string) => {
+    switch(channel) {
+      case 'META': return 'bg-blue-50 text-blue-800';
+      case 'GOOGLE': return 'bg-green-50 text-green-800';
+      case 'LINKEDIN': return 'bg-blue-800 text-white';
+      case 'TWITTER': return 'bg-blue-400 text-white';
+      case 'DISPLAY': return 'bg-purple-50 text-purple-800';
+      case 'EMAIL': return 'bg-yellow-50 text-yellow-800';
+      default: return 'bg-gray-50 text-gray-800';
     }
   };
   
+  // Find the appropriate CSS class based on objective
+  const getObjectiveClass = (objective: string) => {
+    switch(objective) {
+      case 'awareness': return 'bg-blue-50 text-blue-800';
+      case 'consideration': return 'bg-purple-50 text-purple-800';
+      case 'conversion': return 'bg-green-50 text-green-800';
+      case 'loyalty': return 'bg-yellow-50 text-yellow-800';
+      default: return 'bg-gray-50 text-gray-800';
+    }
+  };
+
   return (
     <>
-      {/* Planned Budget Row */}
-      <tr className="campaign-row">
-        <td className="fixed-column-cell">
-          <Badge variant={campaign.mediaChannel === 'META' ? 'default' : 'outline'} className="font-normal">
+      <tr className="hover:bg-muted/20">
+        {/* Fixed columns */}
+        <td className="px-3 py-2 align-middle">
+          <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${getMediaChannelClass(campaign.mediaChannel)}`}>
             {campaign.mediaChannel}
-          </Badge>
+          </span>
         </td>
-        <td className="fixed-column-cell font-medium">
-          <div className="flex items-center gap-2">
-            {isEditingName ? (
-              <div className="flex items-center gap-1">
-                <Input
-                  value={campaignName}
-                  onChange={handleNameChange}
-                  className="h-8 w-full max-w-[200px]"
-                  autoFocus
-                />
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleSaveName} 
-                  className="h-8 w-8 p-0"
-                >
-                  <Save className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <>
-                <span>{campaign.name}</span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setIsEditingName(true)} 
-                  className="h-6 w-6 p-0"
-                >
-                  <Pencil className="h-3 w-3" />
-                </Button>
-              </>
-            )}
-            
-            {!isBalanced && (
-              <Tooltip>
-                <TooltipTrigger>
-                  <AlertCircle className="h-4 w-4 text-yellow-500" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Budget mismatch: {formatCurrency(unallocatedBudget)} unallocated</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-            {isBalanced && (
-              <Tooltip>
-                <TooltipTrigger>
-                  <Check className="h-4 w-4 text-green-500" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Budget perfectly balanced</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
+        <td className="px-3 py-2 align-middle max-w-[200px]">
+          <div className="font-medium truncate">{campaign.name}</div>
+        </td>
+        <td className="px-3 py-2 align-middle">
+          <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${getObjectiveClass(campaign.objective)}`}>
+            {campaign.objective}
+          </span>
+        </td>
+        <td className="px-3 py-2 align-middle max-w-[150px]">
+          <div className="text-sm truncate" title={campaign.targetAudience}>
+            {campaign.targetAudience}
           </div>
         </td>
-        <td className="fixed-column-cell">
-          <Badge variant="secondary" className="font-normal capitalize">
-            {campaign.objective}
-          </Badge>
+        <td className="px-3 py-2 align-middle whitespace-nowrap">
+          <div className="text-sm">{formatDate(campaign.startDate)}</div>
         </td>
-        <td className="fixed-column-cell">{campaign.targetAudience}</td>
-        <td className="fixed-column-cell">{formatDate(campaign.startDate)}</td>
-        <td className="fixed-column-cell font-medium">{formatCurrency(campaign.totalBudget)}</td>
-        <td className="fixed-column-cell">{campaign.durationDays}</td>
-        <td className="fixed-column-cell">
-          <div className="flex items-center gap-2">
+        <td className="px-3 py-2 align-middle text-right">
+          <div className="font-medium">{formatCurrency(campaign.totalBudget)}</div>
+        </td>
+        <td className="px-3 py-2 align-middle text-right">
+          <div className="font-medium">{campaign.durationDays}</div>
+        </td>
+        <td className="px-3 py-2 align-middle">
+          <div className="flex items-center justify-end gap-1">
             <Button 
               variant="ghost" 
-              size="icon" 
+              size="icon"
               onClick={() => onToggleChart(campaign.id)}
-              className="h-6 w-6"
-            >
-              <Sliders className="h-3 w-3" />
+              title={showChart ? "Hide chart" : "Show chart"}
+              >
+              {showChart ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <BarChart3 className="h-4 w-4" />
+              )}
             </Button>
             
-            <BudgetDistributionModal 
-              campaign={campaign} 
-              trigger={
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
-                  Auto-Distribute
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-4 w-4" />
                 </Button>
-              } 
-            />
-            
-            <Badge variant="outline" className="bg-blue-50 text-xs">Planifié</Badge>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsDistributionOpen(true)}>
+                  <PanelLeftOpen className="mr-2 h-4 w-4" />
+                  Distribute Budget
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsAdSetManagerOpen(true)}>
+                  <Filter className="mr-2 h-4 w-4" />
+                  Gérer les sous-ensembles
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => {
+                    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la campagne "${campaign.name}" ?`)) {
+                      deleteCampaign(campaign.id);
+                    }
+                  }}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Campaign
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </td>
         
-        {/* Dynamic weekly budget columns - Planned */}
-        {weeks.map(week => (
-          <td key={week.weekLabel} className="budget-cell">
-            <WeeklyBudgetInput
-              campaignId={campaign.id}
-              weekLabel={week.weekLabel}
-              value={campaign.weeklyBudgets[week.weekLabel] || 0}
-            />
-          </td>
-        ))}
+        {/* Weekly columns */}
+        {weeks.map((week) => {
+          const isInCampaign = campaignWeeks.includes(week.weekNumber);
+          const weekLabel = week.weekLabel;
+          const budgetForWeek = campaign.weeklyBudgets[weekLabel] || 0;
+          
+          return (
+            <td 
+              key={`${campaign.id}-${weekLabel}`} 
+              className={`px-1 py-1 text-right min-w-[80px] border-l ${!isInCampaign ? 'bg-muted/20' : ''}`}
+            >
+              {isInCampaign ? (
+                <div className="space-y-2">
+                  <WeeklyBudgetInput 
+                    campaignId={campaign.id}
+                    weekLabel={weekLabel}
+                    amount={budgetForWeek}
+                  />
+                  <ActualBudgetInput 
+                    campaignId={campaign.id}
+                    weekLabel={weekLabel}
+                  />
+                </div>
+              ) : null}
+            </td>
+          );
+        })}
       </tr>
       
-      {/* Actual Budget Row */}
-      <tr className="campaign-row bg-muted/30">
-        <td className="fixed-column-cell"></td>
-        <td className="fixed-column-cell font-medium"></td>
-        <td className="fixed-column-cell"></td>
-        <td className="fixed-column-cell"></td>
-        <td className="fixed-column-cell"></td>
-        <td className="fixed-column-cell"></td>
-        <td className="fixed-column-cell"></td>
-        <td className="fixed-column-cell">
-          <div className="flex items-center gap-2 justify-end">
-            <Badge variant="outline" className="bg-green-50 text-xs">Réel</Badge>
-          </div>
-        </td>
-        
-        {/* Dynamic weekly budget columns - Actual */}
-        {weeks.map(week => (
-          <td key={week.weekLabel} className="budget-cell">
-            <ActualBudgetInput
-              campaignId={campaign.id}
-              weekLabel={week.weekLabel}
-              plannedBudget={campaign.weeklyBudgets[week.weekLabel] || 0}
-            />
-          </td>
-        ))}
-      </tr>
+      <BudgetDistributionModal 
+        isOpen={isDistributionOpen}
+        onClose={() => setIsDistributionOpen(false)}
+        campaign={campaign}
+      />
+
+      {isAdSetManagerOpen && (
+        <AdSetManager
+          campaign={campaign}
+          open={isAdSetManagerOpen}
+          onClose={() => setIsAdSetManagerOpen(false)}
+        />
+      )}
     </>
   );
 }

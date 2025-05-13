@@ -1,5 +1,5 @@
 
-import { Campaign, MediaChannel, MarketingObjective } from "@/types/campaign";
+import { Campaign, MediaChannel, MarketingObjective, AdSet } from "@/types/campaign";
 import { Json } from "@/integrations/supabase/types";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -16,6 +16,17 @@ type SupabaseCampaign = {
   created_at: string;
   updated_at: string;
   created_by: string | null;
+};
+
+type SupabaseAdSet = {
+  id: string;
+  campaign_id: string;
+  name: string;
+  budget_percentage: number;
+  description: string | null;
+  target_audience: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export function mapToCampaign(supabaseCampaign: SupabaseCampaign): Campaign {
@@ -44,6 +55,29 @@ export function mapToSupabaseCampaign(campaign: Omit<Campaign, "id" | "createdAt
     total_budget: campaign.totalBudget,
     duration_days: campaign.durationDays,
     weekly_budgets: campaign.weeklyBudgets
+  };
+}
+
+export function mapToAdSet(supabaseAdSet: SupabaseAdSet): AdSet {
+  return {
+    id: supabaseAdSet.id,
+    campaignId: supabaseAdSet.campaign_id,
+    name: supabaseAdSet.name,
+    budgetPercentage: supabaseAdSet.budget_percentage,
+    description: supabaseAdSet.description || undefined,
+    targetAudience: supabaseAdSet.target_audience || undefined,
+    createdAt: supabaseAdSet.created_at,
+    updatedAt: supabaseAdSet.updated_at
+  };
+}
+
+export function mapToSupabaseAdSet(adSet: Omit<AdSet, "id" | "createdAt" | "updatedAt">): Omit<SupabaseAdSet, "id" | "created_at" | "updated_at"> {
+  return {
+    campaign_id: adSet.campaignId,
+    name: adSet.name,
+    budget_percentage: adSet.budgetPercentage,
+    description: adSet.description || null,
+    target_audience: adSet.targetAudience || null
   };
 }
 

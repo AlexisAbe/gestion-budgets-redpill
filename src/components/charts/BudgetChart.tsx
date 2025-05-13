@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Campaign } from '@/types/campaign';
-import { WeeklyView } from '@/utils/dateUtils';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { formatDate } from '@/utils/dateUtils';
+import { Campaign, WeeklyView } from '@/types/campaign';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { getCampaignWeeks } from '@/utils/dateUtils';
+import { formatCurrency } from '@/utils/budgetUtils';
+import { AdSetDetails } from '@/components/adSets/AdSetDetails';
 
 interface BudgetChartProps {
   campaign: Campaign;
@@ -12,74 +12,66 @@ interface BudgetChartProps {
 }
 
 export function BudgetChart({ campaign, weeks }: BudgetChartProps) {
-  // Prepare chart data
-  const chartData = weeks
-    .filter(week => campaign.weeklyBudgets[week.weekLabel] !== undefined)
-    .map(week => ({
-      week: week.weekLabel,
-      budget: campaign.weeklyBudgets[week.weekLabel] || 0,
-      date: formatDate(week.startDate),
-    }));
-
-  const getColor = () => {
-    switch (campaign.mediaChannel) {
-      case 'META':
-        return '#5B93FF';
-      case 'GOOGLE':
-        return '#17D188';
-      case 'LINKEDIN':
-        return '#0077B5';
-      case 'TWITTER':
-        return '#1DA1F2';
-      case 'DISPLAY':
-        return '#FF6B6B';
-      case 'EMAIL':
-        return '#9B87F5';
-      default:
-        return '#8E9196';
-    }
-  };
-
+  // Get campaign weeks (which weeks this campaign runs in)
+  const campaignWeekNumbers = getCampaignWeeks(campaign.startDate, campaign.durationDays, weeks);
+  
+  // Filter to only weeks within the campaign duration
+  const campaignWeeksData = weeks
+    .filter(week => campaignWeekNumbers.includes(week.weekNumber))
+    .map(week => {
+      const weekLabel = week.weekLabel;
+      return {
+        name: weekLabel,
+        budget: campaign.weeklyBudgets[weekLabel] || 0,
+        // We can add actual budget here when that's implemented
+      };
+    });
+  
+  // Calculate total allocated budget
+  const totalAllocated = Object.values(campaign.weeklyBudgets).reduce((sum, budget) => sum + budget, 0);
+  const unallocatedBudget = campaign.totalBudget - totalAllocated;
+  const percentageAllocated = (totalAllocated / campaign.totalBudget) * 100;
+  
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-base">Budget Distribution: {campaign.name}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={200}>
-          <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-            <defs>
-              <linearGradient id={`colorBudget-${campaign.id}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={getColor()} stopOpacity={0.8} />
-                <stop offset="95%" stopColor={getColor()} stopOpacity={0.2} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-            <XAxis 
-              dataKey="week" 
-              tick={{ fontSize: 10 }}
-              tickLine={false}
-            />
-            <YAxis 
-              tick={{ fontSize: 10 }}
-              tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-              tickLine={false}
-              axisLine={false}
-            />
-            <Tooltip 
-              formatter={(value: number) => [`${value.toLocaleString('fr-FR')} €`, 'Budget']}
-              labelFormatter={(label) => `Week ${label}`}
-            />
-            <Area 
-              type="monotone" 
-              dataKey="budget" 
-              stroke={getColor()} 
-              fillOpacity={1} 
-              fill={`url(#colorBudget-${campaign.id})`} 
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
+    <div className="space-y-4 p-2">
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="flex-1">
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-medium text-lg">Budget Distribution</h3>
+              <div className="text-sm">
+                <span className="font-semibold">{formatCurrency(totalAllocated)}</span> of <span className="font-semibold">{formatCurrency(campaign.totalBudget)}</span> allocated
+                <span className="ml-2 px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-medium">
+                  {percentageAllocated.toFixed(1)}%
+                </span>
+              </div>
+            </div>
+            
+            {unallocatedBudget > 0 && (
+              <div className="p-2 mb-2 bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm rounded">
+                Unallocated budget: <span className="font-semibold">{formatCurrency(unallocatedBudget)}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={campaignWeeksData} margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(value) => `${Math.round(value / 1000)}k`} />
+                <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                <Legend />
+                <Bar dataKey="budget" name="Planned Budget" fill="#10b981" barSize={30} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        
+        <div className="md:w-1/3 lg:w-1/4 xl:w-1/3">
+          <AdSetDetails campaign={campaign} />
+        </div>
+      </div>
+    </div>
   );
 }

@@ -54,6 +54,47 @@ export type Database = {
           },
         ]
       }
+      ad_sets: {
+        Row: {
+          budget_percentage: number
+          campaign_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          target_audience: string | null
+          updated_at: string
+        }
+        Insert: {
+          budget_percentage?: number
+          campaign_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          target_audience?: string | null
+          updated_at?: string
+        }
+        Update: {
+          budget_percentage?: number
+          campaign_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          target_audience?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_sets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           created_at: string

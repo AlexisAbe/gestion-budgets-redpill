@@ -35,3 +35,14 @@ export interface WeeklyView {
   startDate: string; // ISO date string of first day of week
   endDate: string; // ISO date string of last day of week
 }
+
+export interface AdSet {
+  id: string;
+  campaignId: string;
+  name: string;
+  budgetPercentage: number;
+  description?: string;
+  targetAudience?: string;
+  createdAt: string;
+  updatedAt: string;
+}
