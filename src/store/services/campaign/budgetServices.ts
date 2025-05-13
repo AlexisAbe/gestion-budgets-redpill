@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatSupabaseError } from '@/utils/supabaseUtils';
 import { toast } from 'sonner';
 import { supabaseService } from '../base/supabaseService';
+import { distributeByPercentages, distributeEvenlyAcrossWeeks, distributeByCurve } from '@/utils/budgetUtils';
 
 // Update the weekly budget for a campaign
 export async function updateWeeklyBudgetService(
@@ -70,13 +71,10 @@ export async function autoDistributeBudgetService(
     
     // Distribute based on selected method
     if (method === 'manual' && percentages) {
-      const { distributeByPercentages } = require('@/utils/budgetUtils');
       newWeeklyBudgets = distributeByPercentages(campaign, percentages);
     } else if (method === 'even') {
-      const { distributeEvenlyAcrossWeeks } = require('@/utils/budgetUtils');
       newWeeklyBudgets = distributeEvenlyAcrossWeeks(campaign, weeks);
     } else {
-      const { distributeByCurve } = require('@/utils/budgetUtils');
       newWeeklyBudgets = distributeByCurve(campaign, weeks, method);
     }
     
