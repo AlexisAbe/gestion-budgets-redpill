@@ -52,6 +52,12 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden; /* Empêche le défilement horizontal */
+    max-width: 100vw; /* Limite la largeur au viewport */
+  }
+  
+  html {
+    overflow-x: hidden; /* Empêche le défilement horizontal également au niveau HTML */
   }
 }
 

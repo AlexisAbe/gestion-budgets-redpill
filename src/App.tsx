@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
+// Création d'un client React Query
 const queryClient = new QueryClient();
 
 const App = () => (

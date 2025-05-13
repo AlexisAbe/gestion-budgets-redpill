@@ -58,7 +58,7 @@ export function CampaignTable() {
       </div>
       
       <div className="border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-w-full">
           <div className="inline-block min-w-full align-middle">
             <table className="min-w-full divide-y divide-border">
               <thead>
