@@ -1,3 +1,4 @@
+
 import { AdSet } from '@/types/campaign';
 import { supabase } from '@/integrations/supabase/client';
 import { mapToAdSet, mapToSupabaseAdSet } from '@/utils/supabaseUtils';
@@ -169,9 +170,12 @@ export async function updateAdSetActualBudget(id: string, weekLabel: string, amo
       throw new Error('Sous-ensemble non trouvé');
     }
     
-    // Update actual budgets - now this properly accesses the actual_budgets property
-    // which exists in the database schema after our migration
-    const currentActualBudgets = adSetData.actual_budgets || {};
+    // Ensure actual_budgets is an object by using a default empty object
+    const currentActualBudgets = adSetData.actual_budgets ? 
+      (typeof adSetData.actual_budgets === 'object' ? adSetData.actual_budgets : {}) : 
+      {};
+      
+    // Create updated object for actual budgets
     const updatedActualBudgets = {
       ...currentActualBudgets,
       [weekLabel]: amount
