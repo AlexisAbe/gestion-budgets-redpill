@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCampaignStore } from '@/store/campaignStore';
 import { MediaChannel, MarketingObjective, AdSet } from '@/types/campaign';
 import { formatCurrency } from '@/utils/budgetUtils';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { PlusCircle, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getCampaignWeeks } from '@/utils/dateUtils';

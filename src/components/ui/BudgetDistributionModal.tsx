@@ -6,7 +6,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useCampaignStore } from '@/store/campaignStore';
@@ -19,7 +18,8 @@ import { toast } from '@/hooks/use-toast';
 
 interface BudgetDistributionModalProps {
   campaign: Campaign;
-  trigger: React.ReactNode;
+  open: boolean;
+  onClose: () => void;
 }
 
 interface WeekPercentage {
@@ -27,8 +27,7 @@ interface WeekPercentage {
   percentage: number;
 }
 
-export function BudgetDistributionModal({ campaign, trigger }: BudgetDistributionModalProps) {
-  const [open, setOpen] = useState(false);
+export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistributionModalProps) {
   const [selectedMethod, setSelectedMethod] = useState<'even' | 'front-loaded' | 'back-loaded' | 'bell-curve'>('even');
   const [activeTab, setActiveTab] = useState('auto');
   const { autoDistributeBudget, weeks } = useCampaignStore();
@@ -103,12 +102,13 @@ export function BudgetDistributionModal({ campaign, trigger }: BudgetDistributio
       autoDistributeBudget(campaign.id, 'manual', percentageObject);
     }
     
-    setOpen(false);
+    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) onClose();
+    }}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Distribuer le Budget</DialogTitle>
@@ -221,7 +221,7 @@ export function BudgetDistributionModal({ campaign, trigger }: BudgetDistributio
           </Tabs>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={onClose}>
             Annuler
           </Button>
           <Button onClick={handleDistribute}>

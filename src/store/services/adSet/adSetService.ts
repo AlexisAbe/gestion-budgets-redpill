@@ -2,7 +2,7 @@
 import { AdSet } from '@/types/campaign';
 import { supabase } from '@/integrations/supabase/client';
 import { mapToAdSet, mapToSupabaseAdSet } from '@/utils/supabaseUtils';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { supabaseService } from '../base/supabaseService';
 
 export async function fetchAdSetsForCampaign(campaignId: string): Promise<AdSet[]> {

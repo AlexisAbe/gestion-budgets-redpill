@@ -146,11 +146,12 @@ export function CampaignRow({ campaign, weeks, onToggleChart, showChart }: Campa
                   <WeeklyBudgetInput 
                     campaignId={campaign.id}
                     weekLabel={weekLabel}
-                    amount={budgetForWeek}
+                    plannedBudget={budgetForWeek}
                   />
                   <ActualBudgetInput 
                     campaignId={campaign.id}
                     weekLabel={weekLabel}
+                    plannedBudget={budgetForWeek}
                   />
                 </div>
               ) : null}
@@ -160,7 +161,7 @@ export function CampaignRow({ campaign, weeks, onToggleChart, showChart }: Campa
       </tr>
       
       <BudgetDistributionModal 
-        isOpen={isDistributionOpen}
+        open={isDistributionOpen}
         onClose={() => setIsDistributionOpen(false)}
         campaign={campaign}
       />

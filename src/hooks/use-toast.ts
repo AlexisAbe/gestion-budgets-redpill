@@ -1,10 +1,11 @@
 
 import { useState, useEffect } from "react";
 
-interface Toast {
+export interface Toast {
   id: string;
   title?: string;
   description?: string;
+  action?: React.ReactNode;
   variant?: "default" | "destructive" | "success" | "warning";
 }
 
@@ -43,42 +44,46 @@ const notifyListeners = () => {
   state.listeners.forEach((listener) => listener());
 };
 
-export const toast = {
-  toast: (toast: Omit<Toast, "id">) => {
-    const id = Math.random().toString(36).substring(2, 9);
-    state.toasts = [...state.toasts, { ...toast, id }];
-    notifyListeners();
-    
-    // Auto dismiss after 5 seconds
-    setTimeout(() => {
-      toast.dismiss(id);
-    }, 5000);
-    
-    return id;
-  },
-  dismiss: (id: string) => {
-    state.toasts = state.toasts.filter((toast) => toast.id !== id);
-    notifyListeners();
-  },
-  success: (description: string) => {
-    return toast.toast({ 
-      title: "Succès",
-      description, 
-      variant: "success" 
-    });
-  },
-  error: (description: string) => {
-    return toast.toast({ 
-      title: "Erreur",
-      description, 
-      variant: "destructive" 
-    });
-  },
-  warning: (description: string) => {
-    return toast.toast({ 
-      title: "Attention",
-      description, 
-      variant: "warning" 
-    });
-  },
+// Create a toast function that accepts toast parameters
+export const toast = (props: Omit<Toast, "id">) => {
+  const id = Math.random().toString(36).substring(2, 9);
+  state.toasts = [...state.toasts, { ...props, id }];
+  notifyListeners();
+  
+  // Auto dismiss after 5 seconds
+  setTimeout(() => {
+    toast.dismiss(id);
+  }, 5000);
+  
+  return id;
+};
+
+// Add methods to the toast object
+toast.dismiss = (id: string) => {
+  state.toasts = state.toasts.filter((toast) => toast.id !== id);
+  notifyListeners();
+};
+
+toast.success = (description: string) => {
+  return toast({ 
+    title: "Succès",
+    description, 
+    variant: "success" 
+  });
+};
+
+toast.error = (description: string) => {
+  return toast({ 
+    title: "Erreur",
+    description, 
+    variant: "destructive" 
+  });
+};
+
+toast.warning = (description: string) => {
+  return toast({ 
+    title: "Attention",
+    description, 
+    variant: "warning" 
+  });
 };
