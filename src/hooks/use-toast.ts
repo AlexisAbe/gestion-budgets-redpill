@@ -157,14 +157,7 @@ function toast({ ...props }: Toast) {
 
   dispatch({
     type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss()
-      },
-    },
+    toast: props,  // Fixed: removed id property from toast object
   })
 
   return {
