@@ -57,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         options: {
           shouldCreateUser: true,
+          // Utiliser l'URL de l'application actuelle pour la redirection
           emailRedirectTo: window.location.origin,
         }
       });
@@ -82,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: {
             full_name: fullName,
           },
+          // Utiliser l'URL de l'application actuelle pour la redirection
           emailRedirectTo: window.location.origin,
         }
       });
