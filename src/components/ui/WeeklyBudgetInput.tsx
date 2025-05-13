@@ -6,18 +6,18 @@ import { formatCurrency } from '@/utils/budgetUtils';
 interface WeeklyBudgetInputProps {
   campaignId: string;
   weekLabel: string;
-  value: number;
+  plannedBudget: number;
 }
 
-export function WeeklyBudgetInput({ campaignId, weekLabel, value }: WeeklyBudgetInputProps) {
+export function WeeklyBudgetInput({ campaignId, weekLabel, plannedBudget }: WeeklyBudgetInputProps) {
   const { updateWeeklyBudget } = useCampaignStore();
-  const [inputValue, setInputValue] = useState(value ? value.toString() : '');
+  const [inputValue, setInputValue] = useState(plannedBudget ? plannedBudget.toString() : '');
   const [isEditing, setIsEditing] = useState(false);
   const [showFormatted, setShowFormatted] = useState(true);
 
   useEffect(() => {
-    setInputValue(value ? value.toString() : '');
-  }, [value]);
+    setInputValue(plannedBudget ? plannedBudget.toString() : '');
+  }, [plannedBudget]);
 
   const handleFocus = () => {
     setIsEditing(true);
@@ -31,7 +31,7 @@ export function WeeklyBudgetInput({ campaignId, weekLabel, value }: WeeklyBudget
     // Parse and update the value
     const newValue = parseFloat(inputValue) || 0;
     
-    if (newValue !== value) {
+    if (newValue !== plannedBudget) {
       updateWeeklyBudget(campaignId, weekLabel, newValue);
     }
   };
@@ -48,12 +48,12 @@ export function WeeklyBudgetInput({ campaignId, weekLabel, value }: WeeklyBudget
 
   return (
     <div className="budget-cell relative group">
-      {showFormatted && value > 0 ? (
+      {showFormatted && plannedBudget > 0 ? (
         <div 
           onClick={() => setIsEditing(true)}
           className="w-full h-full p-1 cursor-pointer text-center flex items-center justify-center hover:bg-primary/5 rounded"
         >
-          {formatCurrency(value)}
+          {formatCurrency(plannedBudget)}
         </div>
       ) : (
         <input

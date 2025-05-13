@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { Campaign, MediaChannel, MarketingObjective } from '../types/campaign';
 import { WeeklyView, generateWeeksForYear } from '../utils/dateUtils';
@@ -59,7 +60,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   
   updateCampaign: async (id, data) => {
     try {
-      await updateCampaignService(id, data, get().campaigns);
+      await updateCampaignService(id, data);
       await get().fetchCampaigns(); // Refresh campaigns list
     } catch (error) {
       console.error('Error updating campaign:', error);
@@ -80,7 +81,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   
   updateWeeklyBudget: async (campaignId, weekLabel, amount) => {
     try {
-      await updateWeeklyBudgetService(campaignId, weekLabel, amount, get().campaigns);
+      await updateWeeklyBudgetService(campaignId, weekLabel, amount);
       await get().fetchCampaigns(); // Refresh campaigns list
     } catch (error) {
       console.error('Error updating weekly budget:', error);

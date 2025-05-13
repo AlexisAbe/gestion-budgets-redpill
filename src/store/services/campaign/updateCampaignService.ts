@@ -3,7 +3,7 @@ import { Campaign } from '@/types/campaign';
 import { supabase } from '@/integrations/supabase/client';
 import { mapToSupabaseCampaign, mapToCampaign } from '@/utils/supabaseUtils';
 import { isBudgetBalanced } from '@/utils/budgetUtils';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { supabaseService } from '../base/supabaseService';
 
 export async function updateCampaignService(campaign: Campaign): Promise<Campaign> {
@@ -122,9 +122,12 @@ export async function updateActualBudgetService(
     // Map to our frontend type
     const campaign = mapToCampaign(campaignData);
     
+    // Get current actual budgets or create empty object if it doesn't exist
+    const currentActualBudgets = campaign.actualBudgets || {};
+    
     // Update the actual budgets
     const updatedActualBudgets = {
-      ...campaign.actualBudgets,
+      ...currentActualBudgets,
       [weekLabel]: amount
     };
     

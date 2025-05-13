@@ -50,7 +50,7 @@ export function AdSetManager({ campaign, onClose, open }: AdSetManagerProps) {
     for (const adSet of newAdSets) {
       if ('id' in adSet && adSet.id) {
         // Update existing ad set
-        await updateAdSet(adSet.id, adSet);
+        await updateAdSet(adSet.id, adSet as Partial<AdSet>);
       } else {
         // Add new ad set
         await addAdSet({

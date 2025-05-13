@@ -25,6 +25,7 @@ export interface Campaign {
   totalBudget: number;
   durationDays: number;
   weeklyBudgets: Record<string, number>; // { "W1": 1000, "W2": 2000, ... }
+  actualBudgets?: Record<string, number>; // Added this property for actual spent budgets
   createdAt: string;
   updatedAt: string;
 }

@@ -13,6 +13,7 @@ type SupabaseCampaign = {
   total_budget: number;
   duration_days: number;
   weekly_budgets: Json;
+  actual_budgets?: Json;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -40,6 +41,7 @@ export function mapToCampaign(supabaseCampaign: SupabaseCampaign): Campaign {
     totalBudget: supabaseCampaign.total_budget,
     durationDays: supabaseCampaign.duration_days,
     weeklyBudgets: supabaseCampaign.weekly_budgets as Record<string, number>,
+    actualBudgets: supabaseCampaign.actual_budgets as Record<string, number> || {},
     createdAt: supabaseCampaign.created_at,
     updatedAt: supabaseCampaign.updated_at
   };
@@ -54,7 +56,8 @@ export function mapToSupabaseCampaign(campaign: Omit<Campaign, "id" | "createdAt
     start_date: campaign.startDate,
     total_budget: campaign.totalBudget,
     duration_days: campaign.durationDays,
-    weekly_budgets: campaign.weeklyBudgets
+    weekly_budgets: campaign.weeklyBudgets,
+    actual_budgets: campaign.actualBudgets
   };
 }
 
