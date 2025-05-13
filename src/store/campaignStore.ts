@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { Campaign, MediaChannel, MarketingObjective } from '../types/campaign';
 import { generateWeeksForYear, WeeklyView } from '../utils/dateUtils';
@@ -6,6 +5,7 @@ import { isBudgetBalanced, distributeEvenlyAcrossWeeks } from '../utils/budgetUt
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { mapToCampaign, mapToSupabaseCampaign } from '@/utils/supabaseUtils';
+import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '@/context/AuthContext';
 
 const YEAR = 2025;
@@ -65,12 +65,19 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
       
       // Get the current user from localStorage
       const storedUser = localStorage.getItem('selectedUser');
-      const userId = storedUser ? JSON.parse(storedUser).id : null;
+      let userId = null;
+      
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        // Generate a valid UUID if the ID is not already in UUID format
+        // This ensures compatibility with Supabase's UUID expectations
+        userId = user.id.length === 36 ? user.id : uuidv4();
+      }
       
       // Convert to snake_case for Supabase
       const supabaseCampaignData = mapToSupabaseCampaign(campaignData);
       
-      // Add the created_by field with the current user's ID
+      // Add the created_by field with a valid UUID
       const dataWithUser = {
         ...supabaseCampaignData,
         created_by: userId

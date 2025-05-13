@@ -24,6 +24,7 @@ export function AddCampaignForm() {
     durationDays: 30,
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (field: string, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -65,26 +66,35 @@ export function AddCampaignForm() {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validateForm()) {
-      addCampaign({
-        ...formData,
-        weeklyBudgets: {}
-      });
+      setIsSubmitting(true);
       
-      // Reset form and close dialog
-      setFormData({
-        mediaChannel: 'META' as MediaChannel,
-        name: '',
-        objective: 'awareness' as MarketingObjective,
-        targetAudience: '',
-        startDate: new Date().toISOString().split('T')[0],
-        totalBudget: 0,
-        durationDays: 30,
-      });
-      setOpen(false);
+      try {
+        await addCampaign({
+          ...formData,
+          weeklyBudgets: {}
+        });
+        
+        // Reset form and close dialog
+        setFormData({
+          mediaChannel: 'META' as MediaChannel,
+          name: '',
+          objective: 'awareness' as MarketingObjective,
+          targetAudience: '',
+          startDate: new Date().toISOString().split('T')[0],
+          totalBudget: 0,
+          durationDays: 30,
+        });
+        setOpen(false);
+      } catch (error) {
+        console.error('Submit error:', error);
+        toast.error('Erreur lors de l\'ajout de la campagne');
+      } finally {
+        setIsSubmitting(false);
+      }
     } else {
-      toast.error('Please fix the form errors before submitting');
+      toast.error('Veuillez corriger les erreurs du formulaire avant de soumettre');
     }
   };
 
@@ -220,8 +230,10 @@ export function AddCampaignForm() {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSubmit}>Save Campaign</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Save Campaign'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
