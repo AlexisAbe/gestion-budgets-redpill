@@ -9,9 +9,17 @@ import { ExportTools } from '../export/ExportTools';
 export function CampaignTable() {
   const { campaigns, weeks } = useCampaignStore();
   const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({});
+  const [inlineAdSets, setInlineAdSets] = useState<Record<string, boolean>>({});
   
   const toggleChart = (campaignId: string) => {
     setExpandedCampaigns(prev => ({
+      ...prev,
+      [campaignId]: !prev[campaignId]
+    }));
+  };
+  
+  const toggleInlineAdSets = (campaignId: string) => {
+    setInlineAdSets(prev => ({
       ...prev,
       [campaignId]: !prev[campaignId]
     }));
@@ -65,6 +73,8 @@ export function CampaignTable() {
                       weeks={weeks}
                       onToggleChart={toggleChart}
                       showChart={!!expandedCampaigns[campaign.id]}
+                      showInlineAdSets={!!inlineAdSets[campaign.id]}
+                      onToggleInlineAdSets={toggleInlineAdSets}
                     />
                   </React.Fragment>
                 ))}
