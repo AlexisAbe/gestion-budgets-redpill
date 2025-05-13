@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { initialCampaignState, CampaignState } from './types/campaignStoreTypes';
-import { createCampaignActions } from './actions/campaignActions';
+import { createCampaignActions } from './actions/createCampaignActions';
 import { setupClientSubscription } from './subscriptions/clientSubscription';
 
 // Create the campaign store with refactored actions
