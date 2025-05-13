@@ -9,6 +9,7 @@ import { deleteCampaignService } from './services/campaignServices';
 import { updateWeeklyBudgetService } from './services/campaignServices';
 import { autoDistributeBudgetService } from './services/campaignServices';
 import { resetStoreService } from './services/campaignServices';
+import { useClientStore } from './clientStore';
 
 const YEAR = 2025;
 

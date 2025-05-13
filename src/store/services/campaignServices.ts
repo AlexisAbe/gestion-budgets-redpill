@@ -1,7 +1,7 @@
 import { Campaign } from '@/types/campaign';
 import { WeeklyView } from '@/utils/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { mapToCampaign, mapToSupabaseCampaign, getValidUUID } from '@/utils/supabaseUtils';
+import { mapToCampaign, mapToSupabaseCampaign } from '@/utils/supabaseUtils';
 import { isBudgetBalanced, distributeEvenlyAcrossWeeks } from '@/utils/budgetUtils';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -41,37 +41,21 @@ export async function addCampaignService(
       );
     }
     
-    // Generate a fallback UUID instead of relying on localStorage
-    let userId = uuidv4();
-    
-    // Try to get the user from localStorage but have a fallback
-    try {
-      const storedUser = localStorage.getItem('selectedUser');
-      
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        // Only use the user ID if it's a valid UUID format
-        const validUUID = getValidUUID(user.id);
-        if (validUUID) {
-          userId = validUUID;
-        }
-      }
-    } catch (e) {
-      console.warn('Could not parse user from localStorage, using generated UUID', e);
-    }
+    // Generate a UUID for the campaign
+    const campaignId = uuidv4();
     
     // Convert to snake_case for Supabase
     const supabaseCampaignData = mapToSupabaseCampaign(campaignData);
     
-    // Add the created_by field with a valid UUID
-    const dataWithUser = {
+    // Remove the user dependency
+    const dataWithId = {
       ...supabaseCampaignData,
-      created_by: userId
+      id: campaignId
     };
     
     const { data, error } = await supabase
       .from('campaigns')
-      .insert(dataWithUser)
+      .insert(dataWithId)
       .select()
       .single();
     
@@ -94,7 +78,7 @@ export async function addCampaignService(
       toast.success(`Campagne "${newCampaign.name}" ajoutée avec succès`);
     }
     
-    return newCampaign.id;
+    return campaignId;
   } catch (error) {
     console.error('Error adding campaign:', error);
     toast.error('Erreur lors de l\'ajout de la campagne');

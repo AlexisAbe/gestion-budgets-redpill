@@ -3,6 +3,7 @@ import React from 'react';
 import { ModeToggle } from '@/components/ui/mode-toggle';
 import { UserNav } from './UserNav';
 import { useAuth } from '@/context/AuthContext';
+import { ClientSelector } from './ClientSelector';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -15,8 +16,9 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b bg-background">
         <div className="container px-4 flex h-14 items-center justify-between">
-          <div className="flex items-center">
+          <div className="flex items-center gap-4">
             <h1 className="font-bold text-lg mr-6">Belambra Media Budget</h1>
+            <ClientSelector />
           </div>
           <div className="flex items-center gap-4">
             <ModeToggle />

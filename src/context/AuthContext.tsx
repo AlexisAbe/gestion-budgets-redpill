@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -30,16 +29,15 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Set a default user to avoid authentication requirements
+  const defaultUser = MOCK_USERS[0];
+  const [user, setUser] = useState<User | null>(defaultUser);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem('selectedUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    // Auto-select the default user to bypass authentication
+    localStorage.setItem('selectedUser', JSON.stringify(defaultUser));
     setIsLoading(false);
   }, []);
 
@@ -63,14 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = () => {
-    try {
-      localStorage.removeItem('selectedUser');
-      setUser(null);
-      toast.info("Déconnexion réussie");
-      navigate('/auth');
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
+    // Instead of signing out, keep the default user
+    setUser(defaultUser);
+    navigate('/');
   };
 
   return (

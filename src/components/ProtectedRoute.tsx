@@ -7,6 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  // Nous utilisons toujours useAuth mais nous savons maintenant qu'un utilisateur est toujours défini
   const { user, isLoading } = useAuth();
   const location = useLocation();
 
@@ -18,9 +19,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
-  }
-
+  // Nous permettons toujours l'accès, car un utilisateur par défaut est maintenant défini
   return <>{children}</>;
 };
