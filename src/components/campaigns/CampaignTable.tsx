@@ -66,13 +66,6 @@ export function CampaignTable() {
                       onToggleChart={toggleChart}
                       showChart={!!expandedCampaigns[campaign.id]}
                     />
-                    {expandedCampaigns[campaign.id] && (
-                      <tr>
-                        <td colSpan={8 + weeks.length} className="bg-muted/20 p-4">
-                          <BudgetChart campaign={campaign} weeks={weeks} />
-                        </td>
-                      </tr>
-                    )}
                   </React.Fragment>
                 ))}
               </tbody>

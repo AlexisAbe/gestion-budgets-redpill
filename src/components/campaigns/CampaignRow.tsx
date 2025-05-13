@@ -13,6 +13,7 @@ import { BudgetDistributionModal } from '@/components/ui/BudgetDistributionModal
 import { BarChart3, Trash2, PanelLeftOpen, Minimize2, Filter } from 'lucide-react';
 import { getCampaignWeeks } from '@/utils/dateUtils';
 import { AdSetManager } from '@/components/adSets/AdSetManager';
+import { AdSetDetails } from '@/components/adSets/AdSetDetails';
 
 interface CampaignRowProps {
   campaign: Campaign;
@@ -25,6 +26,7 @@ export function CampaignRow({ campaign, weeks, onToggleChart, showChart }: Campa
   const { deleteCampaign, updateWeeklyBudget } = useCampaignStore();
   const [isDistributionOpen, setIsDistributionOpen] = useState(false);
   const [isAdSetManagerOpen, setIsAdSetManagerOpen] = useState(false);
+  const [showAdSets, setShowAdSets] = useState(false);
   
   // Get campaign weeks (which weeks this campaign runs in)
   const campaignWeeks = getCampaignWeeks(campaign.startDate, campaign.durationDays, weeks);
@@ -114,6 +116,10 @@ export function CampaignRow({ campaign, weeks, onToggleChart, showChart }: Campa
                   <Filter className="mr-2 h-4 w-4" />
                   Gérer les sous-ensembles
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowAdSets(!showAdSets)}>
+                  <Filter className="mr-2 h-4 w-4" />
+                  {showAdSets ? "Masquer les sous-ensembles" : "Afficher les sous-ensembles"}
+                </DropdownMenuItem>
                 <DropdownMenuItem 
                   className="text-destructive focus:text-destructive"
                   onClick={() => {
@@ -146,7 +152,7 @@ export function CampaignRow({ campaign, weeks, onToggleChart, showChart }: Campa
                   <WeeklyBudgetInput 
                     campaignId={campaign.id}
                     weekLabel={weekLabel}
-                    value={budgetForWeek}
+                    plannedBudget={budgetForWeek}
                   />
                   <ActualBudgetInput 
                     campaignId={campaign.id}
@@ -159,6 +165,24 @@ export function CampaignRow({ campaign, weeks, onToggleChart, showChart }: Campa
           );
         })}
       </tr>
+      
+      {/* AdSet details row */}
+      {showAdSets && (
+        <tr>
+          <td colSpan={8 + weeks.length} className="bg-muted/10 p-4">
+            <AdSetDetails campaign={campaign} />
+          </td>
+        </tr>
+      )}
+
+      {/* Chart row */}
+      {showChart && (
+        <tr>
+          <td colSpan={8 + weeks.length} className="bg-muted/20 p-4">
+            <BudgetChart campaign={campaign} weeks={weeks} />
+          </td>
+        </tr>
+      )}
       
       <BudgetDistributionModal 
         open={isDistributionOpen}

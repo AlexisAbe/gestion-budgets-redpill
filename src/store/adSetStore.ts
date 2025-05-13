@@ -8,6 +8,7 @@ import {
   deleteAdSet,
   validateAdSetBudgets
 } from './services/adSet/adSetService';
+import { toast } from '@/hooks/use-toast';
 
 interface AdSetState {
   adSets: Record<string, AdSet[]>; // Keyed by campaign ID
@@ -27,6 +28,8 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
     set(state => ({ isLoading: true }));
     try {
       const adSets = await fetchAdSetsForCampaign(campaignId);
+      console.log('Ad sets fetched:', adSets.length);
+      
       set(state => ({
         adSets: {
           ...state.adSets,
@@ -36,6 +39,11 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
       return adSets;
     } catch (error) {
       console.error('Error fetching ad sets:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de récupérer les sous-ensembles",
+        variant: "destructive"
+      });
       return [];
     } finally {
       set({ isLoading: false });
@@ -57,10 +65,19 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
             ]
           }
         }));
+        toast({
+          title: "Succès",
+          description: `Sous-ensemble "${newAdSet.name}" ajouté`,
+        });
       }
       return newAdSet;
     } catch (error) {
       console.error('Error adding ad set:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter le sous-ensemble",
+        variant: "destructive"
+      });
       return null;
     } finally {
       set({ isLoading: false });
@@ -81,10 +98,19 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
             )
           }
         }));
+        toast({
+          title: "Succès",
+          description: `Sous-ensemble "${updatedAdSet.name}" mis à jour`,
+        });
       }
       return updatedAdSet;
     } catch (error) {
       console.error('Error updating ad set:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le sous-ensemble",
+        variant: "destructive"
+      });
       return null;
     } finally {
       set({ isLoading: false });
@@ -112,11 +138,20 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
               [campaignId!]: state.adSets[campaignId!].filter(adSet => adSet.id !== id)
             }
           }));
+          toast({
+            title: "Succès",
+            description: `Sous-ensemble "${name}" supprimé`,
+          });
         }
       }
       return success;
     } catch (error) {
       console.error('Error deleting ad set:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le sous-ensemble",
+        variant: "destructive"
+      });
       return false;
     } finally {
       set({ isLoading: false });
