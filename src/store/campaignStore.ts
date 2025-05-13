@@ -4,139 +4,206 @@ import { Campaign, MediaChannel, MarketingObjective } from '../types/campaign';
 import { generateWeeksForYear, WeeklyView } from '../utils/dateUtils';
 import { isBudgetBalanced, distributeEvenlyAcrossWeeks } from '../utils/budgetUtils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const YEAR = 2025;
 
 interface CampaignState {
   campaigns: Campaign[];
   weeks: WeeklyView[];
-  addCampaign: (campaign: Omit<Campaign, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateCampaign: (id: string, data: Partial<Campaign>) => void;
-  deleteCampaign: (id: string) => void;
-  updateWeeklyBudget: (campaignId: string, weekLabel: string, amount: number) => void;
-  autoDistributeBudget: (campaignId: string, method: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve') => void;
-  resetStore: () => void;
+  isLoading: boolean;
+  fetchCampaigns: () => Promise<void>;
+  addCampaign: (campaign: Omit<Campaign, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
+  updateCampaign: (id: string, data: Partial<Campaign>) => Promise<void>;
+  deleteCampaign: (id: string) => Promise<void>;
+  updateWeeklyBudget: (campaignId: string, weekLabel: string, amount: number) => Promise<void>;
+  autoDistributeBudget: (campaignId: string, method: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve') => Promise<void>;
+  resetStore: () => Promise<void>;
 }
 
 export const useCampaignStore = create<CampaignState>((set, get) => ({
   campaigns: [],
   weeks: generateWeeksForYear(YEAR),
+  isLoading: false,
   
-  addCampaign: (campaignData) => {
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
+  fetchCampaigns: async () => {
+    set({ isLoading: true });
     
-    const campaign: Campaign = {
-      id,
-      createdAt: now,
-      updatedAt: now,
-      weeklyBudgets: {},
-      ...campaignData
-    };
-    
-    // Auto-distribute budget evenly if no weekly budgets provided
-    if (Object.keys(campaign.weeklyBudgets).length === 0) {
-      campaign.weeklyBudgets = distributeEvenlyAcrossWeeks(campaign, get().weeks);
+    try {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      set({ campaigns: data as Campaign[] });
+      console.log('Campaigns fetched from Supabase:', data);
+    } catch (error) {
+      console.error('Error fetching campaigns:', error);
+      toast.error('Erreur lors de la récupération des campagnes');
+    } finally {
+      set({ isLoading: false });
     }
-    
-    // Check if budget is balanced
-    const balanced = isBudgetBalanced(campaign);
-    
-    set(state => ({ campaigns: [...state.campaigns, campaign] }));
-    
-    console.log(`Campaign "${campaign.name}" added`, campaign);
-    
-    if (!balanced) {
-      toast.warning(`Campaign "${campaign.name}" has unallocated budget. Please check weekly allocations.`);
-    } else {
-      toast.success(`Campaign "${campaign.name}" added successfully`);
-    }
-    
-    return id;
   },
   
-  updateCampaign: (id, data) => {
-    set(state => {
-      const campaignIndex = state.campaigns.findIndex(c => c.id === id);
-      
-      if (campaignIndex === -1) {
-        console.error(`Campaign with ID ${id} not found`);
-        return state;
+  addCampaign: async (campaignData) => {
+    set({ isLoading: true });
+    
+    try {
+      // Auto-distribute budget evenly if no weekly budgets provided
+      if (Object.keys(campaignData.weeklyBudgets).length === 0) {
+        campaignData.weeklyBudgets = distributeEvenlyAcrossWeeks(
+          { ...campaignData, id: '', createdAt: '', updatedAt: '' } as Campaign,
+          get().weeks
+        );
       }
       
-      const updatedCampaign = {
-        ...state.campaigns[campaignIndex],
-        ...data,
-        updatedAt: new Date().toISOString()
-      };
+      const { data, error } = await supabase
+        .from('campaigns')
+        .insert(campaignData)
+        .select()
+        .single();
       
-      const newCampaigns = [...state.campaigns];
-      newCampaigns[campaignIndex] = updatedCampaign;
+      if (error) throw error;
       
-      console.log(`Campaign "${updatedCampaign.name}" updated:`, data);
+      set(state => ({ campaigns: [data as Campaign, ...state.campaigns] }));
       
-      // Check if budget is balanced after update
-      if ('totalBudget' in data || 'weeklyBudgets' in data) {
-        const balanced = isBudgetBalanced(updatedCampaign);
+      console.log(`Campaign "${data.name}" added`, data);
+      
+      // Check if budget is balanced
+      const balanced = isBudgetBalanced(data as Campaign);
+      
+      if (!balanced) {
+        toast.warning(`La campagne "${data.name}" a un budget non alloué. Veuillez vérifier les allocations hebdomadaires.`);
+      } else {
+        toast.success(`Campagne "${data.name}" ajoutée avec succès`);
+      }
+      
+      return data.id;
+    } catch (error) {
+      console.error('Error adding campaign:', error);
+      toast.error('Erreur lors de l\'ajout de la campagne');
+      throw error;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+  
+  updateCampaign: async (id, data) => {
+    try {
+      const { error } = await supabase
+        .from('campaigns')
+        .update(data)
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      set(state => {
+        const campaignIndex = state.campaigns.findIndex(c => c.id === id);
         
-        if (!balanced) {
-          toast.warning(`Campaign "${updatedCampaign.name}" has unallocated budget. Please check weekly allocations.`);
+        if (campaignIndex === -1) {
+          console.error(`Campaign with ID ${id} not found`);
+          return state;
         }
-      }
-      
-      return { campaigns: newCampaigns };
-    });
+        
+        const updatedCampaign = {
+          ...state.campaigns[campaignIndex],
+          ...data,
+        };
+        
+        const newCampaigns = [...state.campaigns];
+        newCampaigns[campaignIndex] = updatedCampaign;
+        
+        console.log(`Campaign "${updatedCampaign.name}" updated:`, data);
+        
+        // Check if budget is balanced after update
+        if ('totalBudget' in data || 'weeklyBudgets' in data) {
+          const balanced = isBudgetBalanced(updatedCampaign);
+          
+          if (!balanced) {
+            toast.warning(`La campagne "${updatedCampaign.name}" a un budget non alloué. Veuillez vérifier les allocations hebdomadaires.`);
+          }
+        }
+        
+        return { campaigns: newCampaigns };
+      });
+    } catch (error) {
+      console.error('Error updating campaign:', error);
+      toast.error('Erreur lors de la mise à jour de la campagne');
+    }
   },
   
-  deleteCampaign: (id) => {
-    set(state => {
-      const campaignToDelete = state.campaigns.find(c => c.id === id);
-      if (!campaignToDelete) return state;
+  deleteCampaign: async (id) => {
+    try {
+      const campaignToDelete = get().campaigns.find(c => c.id === id);
+      if (!campaignToDelete) return;
       
-      const newCampaigns = state.campaigns.filter(c => c.id !== id);
+      const { error } = await supabase
+        .from('campaigns')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      set(state => ({ campaigns: state.campaigns.filter(c => c.id !== id) }));
       
       console.log(`Campaign "${campaignToDelete.name}" deleted`);
-      toast.info(`Campaign "${campaignToDelete.name}" deleted`);
-      
-      return { campaigns: newCampaigns };
-    });
+      toast.info(`Campagne "${campaignToDelete.name}" supprimée`);
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+      toast.error('Erreur lors de la suppression de la campagne');
+    }
   },
   
-  updateWeeklyBudget: (campaignId, weekLabel, amount) => {
-    set(state => {
-      const campaignIndex = state.campaigns.findIndex(c => c.id === campaignId);
+  updateWeeklyBudget: async (campaignId, weekLabel, amount) => {
+    try {
+      const campaignIndex = get().campaigns.findIndex(c => c.id === campaignId);
       
       if (campaignIndex === -1) {
         console.error(`Campaign with ID ${campaignId} not found`);
-        return state;
+        return;
       }
       
-      const campaign = state.campaigns[campaignIndex];
+      const campaign = get().campaigns[campaignIndex];
       const newWeeklyBudgets = { ...campaign.weeklyBudgets };
       
       // Update the budget for the specified week
       newWeeklyBudgets[weekLabel] = amount;
       
-      const updatedCampaign = {
-        ...campaign,
-        weeklyBudgets: newWeeklyBudgets,
-        updatedAt: new Date().toISOString()
-      };
+      // Update in Supabase
+      const { error } = await supabase
+        .from('campaigns')
+        .update({ weekly_budgets: newWeeklyBudgets })
+        .eq('id', campaignId);
       
-      const newCampaigns = [...state.campaigns];
-      newCampaigns[campaignIndex] = updatedCampaign;
+      if (error) throw error;
       
-      console.log(`Weekly budget updated for campaign "${campaign.name}"`, {
-        week: weekLabel,
-        amount,
-        balanced: isBudgetBalanced(updatedCampaign)
+      // Update state
+      set(state => {
+        const updatedCampaign = {
+          ...campaign,
+          weeklyBudgets: newWeeklyBudgets,
+        };
+        
+        const newCampaigns = [...state.campaigns];
+        newCampaigns[campaignIndex] = updatedCampaign;
+        
+        console.log(`Weekly budget updated for campaign "${campaign.name}"`, {
+          week: weekLabel,
+          amount,
+          balanced: isBudgetBalanced(updatedCampaign)
+        });
+        
+        return { campaigns: newCampaigns };
       });
-      
-      return { campaigns: newCampaigns };
-    });
+    } catch (error) {
+      console.error('Error updating weekly budget:', error);
+      toast.error('Erreur lors de la mise à jour du budget hebdomadaire');
+    }
   },
   
-  autoDistributeBudget: (campaignId, method) => {
+  autoDistributeBudget: async (campaignId, method) => {
     const { campaigns, weeks } = get();
     const campaign = campaigns.find(c => c.id === campaignId);
     
@@ -155,88 +222,116 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
       newWeeklyBudgets = distributeByCurve(campaign, weeks, method);
     }
     
-    // Update the campaign
-    set(state => {
-      const campaignIndex = state.campaigns.findIndex(c => c.id === campaignId);
-      const updatedCampaign = {
-        ...campaign,
-        weeklyBudgets: newWeeklyBudgets,
-        updatedAt: new Date().toISOString()
-      };
+    // Update in Supabase
+    try {
+      const { error } = await supabase
+        .from('campaigns')
+        .update({ weekly_budgets: newWeeklyBudgets })
+        .eq('id', campaignId);
       
-      const newCampaigns = [...state.campaigns];
-      newCampaigns[campaignIndex] = updatedCampaign;
+      if (error) throw error;
       
-      console.log(`Budget auto-distributed for campaign "${campaign.name}" using ${method} method`);
-      toast.success(`Budget for "${campaign.name}" has been automatically distributed`);
-      
-      return { campaigns: newCampaigns };
-    });
+      // Update the campaign
+      set(state => {
+        const campaignIndex = state.campaigns.findIndex(c => c.id === campaignId);
+        const updatedCampaign = {
+          ...campaign,
+          weeklyBudgets: newWeeklyBudgets,
+        };
+        
+        const newCampaigns = [...state.campaigns];
+        newCampaigns[campaignIndex] = updatedCampaign;
+        
+        console.log(`Budget auto-distributed for campaign "${campaign.name}" using ${method} method`);
+        toast.success(`Le budget pour "${campaign.name}" a été automatiquement distribué`);
+        
+        return { campaigns: newCampaigns };
+      });
+    } catch (error) {
+      console.error('Error auto-distributing budget:', error);
+      toast.error('Erreur lors de la distribution automatique du budget');
+    }
   },
   
-  resetStore: () => {
-    set({
-      campaigns: [],
-      weeks: generateWeeksForYear(YEAR)
-    });
-    
-    console.log("Store reset to initial state");
-    toast.info("All campaign data has been reset");
+  resetStore: async () => {
+    try {
+      const { error } = await supabase
+        .from('campaigns')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all campaigns
+      
+      if (error) throw error;
+      
+      set({
+        campaigns: [],
+        weeks: generateWeeksForYear(YEAR)
+      });
+      
+      console.log("Store reset to initial state");
+      toast.info("Toutes les données des campagnes ont été réinitialisées");
+    } catch (error) {
+      console.error('Error resetting store:', error);
+      toast.error('Erreur lors de la réinitialisation des données');
+    }
   }
 }));
 
-// Example data for testing
-export function addExampleCampaigns() {
+// Function to add example campaigns (now with Supabase persistence)
+export async function addExampleCampaigns() {
   const store = useCampaignStore.getState();
-  const { weeks } = store;
   
-  // Facebook Awareness Campaign
-  store.addCampaign({
-    mediaChannel: "META" as MediaChannel,
-    name: "Summer Resorts Awareness",
-    objective: "awareness" as MarketingObjective,
-    targetAudience: "Families with children 5-12",
-    startDate: "2025-04-01", // April 1st
-    totalBudget: 25000,
-    durationDays: 60, // 2 months
-    weeklyBudgets: {}
-  });
-  
-  // Google Search Campaign
-  store.addCampaign({
-    mediaChannel: "GOOGLE" as MediaChannel,
-    name: "Winter Ski Resorts",
-    objective: "conversion" as MarketingObjective,
-    targetAudience: "Adults 25-45, skiing enthusiasts",
-    startDate: "2025-10-15", // October 15th
-    totalBudget: 15000,
-    durationDays: 90, // 3 months
-    weeklyBudgets: {}
-  });
-  
-  // LinkedIn Campaign
-  store.addCampaign({
-    mediaChannel: "LINKEDIN" as MediaChannel,
-    name: "Corporate Retreats",
-    objective: "consideration" as MarketingObjective,
-    targetAudience: "HR Managers, Event Planners",
-    startDate: "2025-02-01", // February 1st
-    totalBudget: 12000,
-    durationDays: 45, // 1.5 months
-    weeklyBudgets: {}
-  });
-  
-  // Email Campaign
-  store.addCampaign({
-    mediaChannel: "EMAIL" as MediaChannel,
-    name: "Loyalty Members Exclusive",
-    objective: "loyalty" as MarketingObjective,
-    targetAudience: "Existing Belambra Club members",
-    startDate: "2025-06-01", // June 1st
-    totalBudget: 5000,
-    durationDays: 30, // 1 month
-    weeklyBudgets: {}
-  });
-  
-  console.log("Example campaigns added");
+  try {
+    // Facebook Awareness Campaign
+    await store.addCampaign({
+      mediaChannel: "META" as MediaChannel,
+      name: "Summer Resorts Awareness",
+      objective: "awareness" as MarketingObjective,
+      targetAudience: "Families with children 5-12",
+      startDate: "2025-04-01", // April 1st
+      totalBudget: 25000,
+      durationDays: 60, // 2 months
+      weeklyBudgets: {}
+    });
+    
+    // Google Search Campaign
+    await store.addCampaign({
+      mediaChannel: "GOOGLE" as MediaChannel,
+      name: "Winter Ski Resorts",
+      objective: "conversion" as MarketingObjective,
+      targetAudience: "Adults 25-45, skiing enthusiasts",
+      startDate: "2025-10-15", // October 15th
+      totalBudget: 15000,
+      durationDays: 90, // 3 months
+      weeklyBudgets: {}
+    });
+    
+    // LinkedIn Campaign
+    await store.addCampaign({
+      mediaChannel: "LINKEDIN" as MediaChannel,
+      name: "Corporate Retreats",
+      objective: "consideration" as MarketingObjective,
+      targetAudience: "HR Managers, Event Planners",
+      startDate: "2025-02-01", // February 1st
+      totalBudget: 12000,
+      durationDays: 45, // 1.5 months
+      weeklyBudgets: {}
+    });
+    
+    // Email Campaign
+    await store.addCampaign({
+      mediaChannel: "EMAIL" as MediaChannel,
+      name: "Loyalty Members Exclusive",
+      objective: "loyalty" as MarketingObjective,
+      targetAudience: "Existing Belambra Club members",
+      startDate: "2025-06-01", // June 1st
+      totalBudget: 5000,
+      durationDays: 30, // 1 month
+      weeklyBudgets: {}
+    });
+    
+    console.log("Example campaigns added to Supabase");
+  } catch (error) {
+    console.error("Error adding example campaigns:", error);
+    toast.error("Erreur lors de l'ajout des campagnes d'exemple");
+  }
 }

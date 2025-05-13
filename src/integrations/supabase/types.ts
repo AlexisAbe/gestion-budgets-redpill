@@ -9,7 +9,131 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      actual_budgets: {
+        Row: {
+          amount: number
+          campaign_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          updated_at: string
+          week_label: string
+        }
+        Insert: {
+          amount?: number
+          campaign_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+          week_label: string
+        }
+        Update: {
+          amount?: number
+          campaign_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+          week_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actual_budgets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actual_budgets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duration_days: number
+          id: string
+          media_channel: string
+          name: string
+          objective: string
+          start_date: string
+          target_audience: string
+          total_budget: number
+          updated_at: string
+          weekly_budgets: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duration_days: number
+          id?: string
+          media_channel: string
+          name: string
+          objective: string
+          start_date: string
+          target_audience: string
+          total_budget: number
+          updated_at?: string
+          weekly_budgets?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duration_days?: number
+          id?: string
+          media_channel?: string
+          name?: string
+          objective?: string
+          start_date?: string
+          target_audience?: string
+          total_budget?: number
+          updated_at?: string
+          weekly_budgets?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

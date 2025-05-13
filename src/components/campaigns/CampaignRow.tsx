@@ -7,9 +7,10 @@ import { BudgetDistributionModal } from '@/components/ui/BudgetDistributionModal
 import { Button } from '@/components/ui/button';
 import { formatCurrency, isBudgetBalanced, getUnallocatedBudget } from '@/utils/budgetUtils';
 import { formatDate } from '@/utils/dateUtils';
-import { AlertCircle, Check, Sliders } from 'lucide-react';
+import { AlertCircle, Check, Sliders, BarChartIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { ActualBudgetInput } from './ActualBudgetInput';
 
 interface CampaignRowProps {
   campaign: Campaign;
@@ -21,6 +22,7 @@ interface CampaignRowProps {
 export function CampaignRow({ campaign, weeks, onToggleChart, showChart }: CampaignRowProps) {
   const isBalanced = isBudgetBalanced(campaign);
   const unallocatedBudget = getUnallocatedBudget(campaign);
+  const [showActualBudget, setShowActualBudget] = useState(false);
   
   return (
     <tr className="campaign-row">
@@ -82,17 +84,35 @@ export function CampaignRow({ campaign, weeks, onToggleChart, showChart }: Campa
               </Button>
             } 
           />
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => setShowActualBudget(!showActualBudget)}
+          >
+            <BarChartIcon className="h-3 w-3 mr-1" />
+            {showActualBudget ? 'Planned' : 'Actual'}
+          </Button>
         </div>
       </td>
       
       {/* Dynamic weekly budget columns */}
       {weeks.map(week => (
         <td key={week.weekLabel} className="budget-cell">
-          <WeeklyBudgetInput
-            campaignId={campaign.id}
-            weekLabel={week.weekLabel}
-            value={campaign.weeklyBudgets[week.weekLabel] || 0}
-          />
+          {showActualBudget ? (
+            <ActualBudgetInput
+              campaignId={campaign.id}
+              weekLabel={week.weekLabel}
+              plannedBudget={campaign.weeklyBudgets[week.weekLabel] || 0}
+            />
+          ) : (
+            <WeeklyBudgetInput
+              campaignId={campaign.id}
+              weekLabel={week.weekLabel}
+              value={campaign.weeklyBudgets[week.weekLabel] || 0}
+            />
+          )}
         </td>
       ))}
     </tr>
