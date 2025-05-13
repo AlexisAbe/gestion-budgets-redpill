@@ -146,7 +146,7 @@ export function CampaignRow({ campaign, weeks, onToggleChart, showChart }: Campa
                   <WeeklyBudgetInput 
                     campaignId={campaign.id}
                     weekLabel={weekLabel}
-                    plannedBudget={budgetForWeek}
+                    value={budgetForWeek}
                   />
                   <ActualBudgetInput 
                     campaignId={campaign.id}

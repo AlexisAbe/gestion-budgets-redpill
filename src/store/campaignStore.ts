@@ -60,7 +60,11 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   
   updateCampaign: async (id, data) => {
     try {
-      await updateCampaignService(id, data);
+      const campaign = {
+        ...data,
+        id
+      } as Campaign;
+      await updateCampaignService(campaign);
       await get().fetchCampaigns(); // Refresh campaigns list
     } catch (error) {
       console.error('Error updating campaign:', error);

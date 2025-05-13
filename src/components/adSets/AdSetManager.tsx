@@ -6,6 +6,7 @@ import { PlusCircle, Loader2 } from 'lucide-react';
 import { AdSetForm } from './AdSetForm';
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { Campaign, AdSet } from '@/types/campaign';
+import { toast } from '@/hooks/use-toast';
 
 interface AdSetManagerProps {
   campaign: Campaign;
@@ -42,7 +43,8 @@ export function AdSetManager({ campaign, onClose, open }: AdSetManagerProps) {
     // Delete ad sets that aren't in the new list
     for (const adSet of currentAdSets) {
       if (!idsToKeep.has(adSet.id)) {
-        await deleteAdSet(adSet.id, adSet.name);
+        // Convert adSet.id to string if needed
+        await deleteAdSet(adSet.id, String(adSet.name));
       }
     }
     

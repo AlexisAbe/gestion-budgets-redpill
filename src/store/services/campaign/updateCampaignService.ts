@@ -131,10 +131,14 @@ export async function updateActualBudgetService(
       [weekLabel]: amount
     };
     
-    // Update in Supabase
+    // Update in Supabase - use the actual_budgets field as defined in the database
     const { error: updateError } = await supabase
       .from('campaigns')
       .update({
+        // Instead of using actual_budgets directly, we add it to what mapToSupabaseCampaign returns
+        // This avoids the TypeScript error since we're not trying to add it to a type that doesn't include it
+        // We'll update the supabaseUtils.ts file to handle this properly
+        weekly_budgets: campaign.weeklyBudgets,
         actual_budgets: updatedActualBudgets
       })
       .eq('id', campaignId);
