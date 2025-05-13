@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { supabaseService } from '../base/supabaseService';
 
 // Delete a campaign
-export async function deleteCampaignService(id: string, campaignName: string): Promise<void> {
+export async function deleteCampaignService(id: string, campaignName: string = 'Unknown'): Promise<void> {
   try {
     console.log('Attempting to delete campaign with ID:', id);
     

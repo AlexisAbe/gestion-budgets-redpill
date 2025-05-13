@@ -6,6 +6,7 @@ import { formatSupabaseError } from '@/utils/supabaseUtils';
 import { toast } from 'sonner';
 import { supabaseService } from '../base/supabaseService';
 import { distributeByPercentages, distributeEvenlyAcrossWeeks, distributeByCurve } from '@/utils/budgetUtils';
+import { mapToCampaign } from '@/utils/supabaseUtils';
 
 // Update the weekly budget for a campaign - removed unnecessary campaigns parameter
 export async function updateWeeklyBudgetService(
@@ -25,7 +26,8 @@ export async function updateWeeklyBudgetService(
       return supabaseService.handleError(error, 'Campaign not found');
     }
     
-    const campaign = data as Campaign;
+    // Convert the database format to our Campaign type
+    const campaign = mapToCampaign(data);
     
     const newWeeklyBudgets = { ...campaign.weeklyBudgets };
     
