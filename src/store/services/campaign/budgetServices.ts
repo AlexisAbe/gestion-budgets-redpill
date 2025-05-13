@@ -53,9 +53,10 @@ export async function updateWeeklyBudgetService(
 // Auto-distribute the budget for a campaign
 export async function autoDistributeBudgetService(
   campaignId: string, 
-  method: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve',
+  method: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual',
   campaigns: Campaign[],
-  weeks: WeeklyView[]
+  weeks: WeeklyView[],
+  percentages?: Record<string, number>
 ): Promise<void> {
   try {
     const campaign = campaigns.find(c => c.id === campaignId);
@@ -68,7 +69,10 @@ export async function autoDistributeBudgetService(
     let newWeeklyBudgets: Record<string, number> = {};
     
     // Distribute based on selected method
-    if (method === 'even') {
+    if (method === 'manual' && percentages) {
+      const { distributeByPercentages } = require('@/utils/budgetUtils');
+      newWeeklyBudgets = distributeByPercentages(campaign, percentages);
+    } else if (method === 'even') {
       const { distributeEvenlyAcrossWeeks } = require('@/utils/budgetUtils');
       newWeeklyBudgets = distributeEvenlyAcrossWeeks(campaign, weeks);
     } else {

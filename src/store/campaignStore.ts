@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { Campaign, MediaChannel, MarketingObjective } from '../types/campaign';
 import { WeeklyView, generateWeeksForYear } from '../utils/dateUtils';
@@ -23,7 +22,7 @@ interface CampaignState {
   updateCampaign: (id: string, data: Partial<Campaign>) => Promise<void>;
   deleteCampaign: (id: string) => Promise<void>;
   updateWeeklyBudget: (campaignId: string, weekLabel: string, amount: number) => Promise<void>;
-  autoDistributeBudget: (campaignId: string, method: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve') => Promise<void>;
+  autoDistributeBudget: (campaignId: string, method: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual', percentages?: Record<string, number>) => Promise<void>;
   resetStore: () => Promise<void>;
 }
 
@@ -88,9 +87,9 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
     }
   },
   
-  autoDistributeBudget: async (campaignId, method) => {
+  autoDistributeBudget: async (campaignId, method, percentages) => {
     try {
-      await autoDistributeBudgetService(campaignId, method, get().campaigns, get().weeks);
+      await autoDistributeBudgetService(campaignId, method, get().campaigns, get().weeks, percentages);
       await get().fetchCampaigns(); // Refresh campaigns list
     } catch (error) {
       console.error('Error auto-distributing budget:', error);
