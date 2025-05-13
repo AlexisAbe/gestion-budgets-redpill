@@ -6,6 +6,7 @@ import { isBudgetBalanced, distributeEvenlyAcrossWeeks } from '../utils/budgetUt
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { mapToCampaign, mapToSupabaseCampaign } from '@/utils/supabaseUtils';
+import { useAuth } from '@/context/AuthContext';
 
 const YEAR = 2025;
 
@@ -62,12 +63,22 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
         );
       }
       
+      // Get the current user from localStorage
+      const storedUser = localStorage.getItem('selectedUser');
+      const userId = storedUser ? JSON.parse(storedUser).id : null;
+      
       // Convert to snake_case for Supabase
       const supabaseCampaignData = mapToSupabaseCampaign(campaignData);
       
+      // Add the created_by field with the current user's ID
+      const dataWithUser = {
+        ...supabaseCampaignData,
+        created_by: userId
+      };
+      
       const { data, error } = await supabase
         .from('campaigns')
-        .insert(supabaseCampaignData)
+        .insert(dataWithUser)
         .select()
         .single();
       
