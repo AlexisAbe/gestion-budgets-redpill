@@ -100,17 +100,17 @@ export function CampaignRow({ campaign, weeks, onToggleChart, showChart }: Campa
       {/* Dynamic weekly budget columns */}
       {weeks.map(week => (
         <td key={week.weekLabel} className="budget-cell">
-          {showActualBudget ? (
-            <ActualBudgetInput
-              campaignId={campaign.id}
-              weekLabel={week.weekLabel}
-              plannedBudget={campaign.weeklyBudgets[week.weekLabel] || 0}
-            />
-          ) : (
+          {!showActualBudget ? (
             <WeeklyBudgetInput
               campaignId={campaign.id}
               weekLabel={week.weekLabel}
               value={campaign.weeklyBudgets[week.weekLabel] || 0}
+            />
+          ) : (
+            <ActualBudgetInput
+              campaignId={campaign.id}
+              weekLabel={week.weekLabel}
+              plannedBudget={campaign.weeklyBudgets[week.weekLabel] || 0}
             />
           )}
         </td>
