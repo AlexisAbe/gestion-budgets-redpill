@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Campaign, WeeklyView } from '@/types/campaign';
@@ -16,7 +17,7 @@ interface CampaignState {
   deleteCampaign: (campaignId: string) => Promise<void>;
   updateWeeklyBudget: (campaignId: string, weekLabel: string, amount: number) => Promise<void>;
   updateActualBudget: (campaignId: string, weekLabel: string, amount: number) => Promise<void>;
-  autoDistributeBudget: (campaignId: string, distributionStrategy: string) => Promise<void>;
+  autoDistributeBudget: (campaignId: string, distributionStrategy: string, percentages?: Record<string, number>) => Promise<void>;
   resetStore: () => void;
 }
 
@@ -28,7 +29,7 @@ const initialState = {
   error: null,
 };
 
-export const useCampaignStore = create<CampaignState>()((set, get) => {
+export const useCampaignStore = create<CampaignState>((set, get) => {
   return {
     ...initialState,
     
@@ -40,13 +41,12 @@ export const useCampaignStore = create<CampaignState>()((set, get) => {
         
         // Filter campaigns based on selected client
         const filteredCampaigns = selectedClientId 
-          ? result.campaigns.filter(campaign => campaign.clientId === selectedClientId)
-          : result.campaigns;
+          ? result.filter(campaign => campaign.clientId === selectedClientId)
+          : result;
           
         set({ 
-          campaigns: result.campaigns,
+          campaigns: result,
           filteredCampaigns,
-          weeks: result.weeks,
           isLoading: false 
         });
       } catch (error) {
@@ -72,8 +72,16 @@ export const useCampaignStore = create<CampaignState>()((set, get) => {
       };
       
       try {
-        const newCampaign = await addCampaignService(campaignWithClient);
-        if (newCampaign) {
+        const campaignId = await addCampaignService(campaignWithClient, get().weeks);
+        if (campaignId) {
+          // Create a new campaign object with the returned ID and basic data
+          const newCampaign: Campaign = {
+            ...campaignWithClient,
+            id: campaignId,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
           set(state => ({
             campaigns: [...state.campaigns, newCampaign],
             filteredCampaigns: [...state.filteredCampaigns, newCampaign]
@@ -90,7 +98,10 @@ export const useCampaignStore = create<CampaignState>()((set, get) => {
     
     updateCampaign: async (campaignId, updates) => {
       try {
-        await updateCampaignService(campaignId, updates);
+        await updateCampaignService({
+          ...updates,
+          id: campaignId,
+        } as Campaign);
         set(state => ({
           campaigns: state.campaigns.map(campaign =>
             campaign.id === campaignId ? { ...campaign, ...updates } : campaign
@@ -120,7 +131,7 @@ export const useCampaignStore = create<CampaignState>()((set, get) => {
     
     updateWeeklyBudget: async (campaignId, weekLabel, amount) => {
       try {
-        await updateWeeklyBudgetService(campaignId, weekLabel, amount);
+        await updateWeeklyBudgetService(campaignId, weekLabel, amount, get().campaigns);
         set(state => ({
           campaigns: state.campaigns.map(campaign => {
             if (campaign.id === campaignId) {
@@ -172,13 +183,20 @@ export const useCampaignStore = create<CampaignState>()((set, get) => {
       }));
     },
     
-    autoDistributeBudget: async (campaignId, distributionStrategy) => {
+    autoDistributeBudget: async (campaignId, distributionStrategy, percentages) => {
       try {
-        await autoDistributeBudgetService(campaignId, distributionStrategy);
-        const { campaigns } = await fetchCampaignsService();
+        await autoDistributeBudgetService(campaignId, distributionStrategy, get().campaigns, get().weeks, percentages);
+        const updatedCampaigns = await fetchCampaignsService();
+        
+        // Filter campaigns based on selected client
+        const { selectedClientId } = useClientStore.getState();
+        const filteredCampaigns = selectedClientId 
+          ? updatedCampaigns.filter(campaign => campaign.clientId === selectedClientId)
+          : updatedCampaigns;
+        
         set({ 
-          campaigns: campaigns,
-          filteredCampaigns: campaigns
+          campaigns: updatedCampaigns,
+          filteredCampaigns
         });
       } catch (error) {
         console.error('Error auto distributing budget:', error);

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,10 +14,12 @@ import { getCampaignWeeks } from '@/utils/dateUtils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AdSetForm } from '@/components/adSets/AdSetForm';
 import { useAdSetStore } from '@/store/adSetStore';
+import { useClientStore } from '@/store/clientStore';
 
 export function AddCampaignForm() {
   const { addCampaign, isLoading, weeks } = useCampaignStore();
   const { addAdSet } = useAdSetStore();
+  const { selectedClientId } = useClientStore();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     mediaChannel: 'META' as MediaChannel,
@@ -98,6 +99,15 @@ export function AddCampaignForm() {
       return;
     }
 
+    if (!selectedClientId) {
+      toast({
+        title: "Erreur",
+        description: 'Veuillez sélectionner un client avant de créer une campagne',
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage(null);
     
@@ -124,20 +134,21 @@ export function AddCampaignForm() {
         });
       }
 
-      const newCampaignId = await addCampaign({
+      const newCampaign = await addCampaign({
         ...formData,
-        weeklyBudgets
+        weeklyBudgets,
+        clientId: selectedClientId
       });
       
       // If ad sets are included and campaign was created successfully
-      if (includeAdSets && adSetsData.length > 0 && newCampaignId) {
-        console.log('Adding ad sets for campaign:', newCampaignId);
+      if (includeAdSets && adSetsData.length > 0 && newCampaign) {
+        console.log('Adding ad sets for campaign:', newCampaign.id);
         
         // Add all ad sets with the correct campaign ID
         for (const adSetData of adSetsData) {
           await addAdSet({
             ...adSetData,
-            campaignId: newCampaignId
+            campaignId: newCampaign.id
           });
         }
         

@@ -1,6 +1,6 @@
 
 import { Campaign } from '@/types/campaign';
-import { WeeklyView, getCampaignWeeks } from '@/utils/dateUtils';
+import { WeeklyView } from '@/utils/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { mapToSupabaseCampaign, mapToCampaign } from '@/utils/supabaseUtils';
 import { isBudgetBalanced, distributeEvenlyAcrossWeeks } from '@/utils/budgetUtils';
@@ -42,7 +42,8 @@ export async function addCampaignService(
     console.log('Attempting to insert campaign with data:', {
       name: dataWithId.name,
       media_channel: dataWithId.media_channel,
-      id: campaignId
+      id: campaignId,
+      client_id: dataWithId.client_id // Make sure client_id is present
     });
     
     const { data, error } = await supabase
