@@ -1,123 +1,80 @@
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
+// Define user interface
+interface User {
+  id: string;
+  email: string;
+  full_name: string;
+}
+
+// Mock users data
+const MOCK_USERS = [
+  { id: '1', email: 'alexis@example.com', full_name: 'Alexis Abergel' },
+  { id: '2', email: 'john@example.com', full_name: 'John Doe' },
+  { id: '3', email: 'jane@example.com', full_name: 'Jane Smith' },
+  { id: '4', email: 'robert@example.com', full_name: 'Robert Johnson' },
+  { id: '5', email: 'emily@example.com', full_name: 'Emily Davis' },
+];
+
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
+  users: User[];
   isLoading: boolean;
-  signIn: (email: string) => Promise<void>;
-  signUp: (email: string, fullName: string) => Promise<void>;
-  signOut: () => Promise<void>;
+  selectUser: (userId: string) => void;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        console.log('Auth state changed:', event);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        // Use setTimeout to avoid potential deadlocks with Supabase client
-        if (currentSession?.user) {
-          setTimeout(() => {
-            // Fetch additional user data if needed
-          }, 0);
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setIsLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    // Check if user is stored in localStorage
+    const storedUser = localStorage.getItem('selectedUser');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setIsLoading(false);
   }, []);
 
-  const signIn = async (email: string) => {
+  const selectUser = (userId: string) => {
     try {
-      // Using signInWithOtp but will create a session immediately
-      const { data, error } = await supabase.auth.signInWithOtp({ 
-        email,
-        options: {
-          shouldCreateUser: true,
-        }
-      });
+      const selectedUser = MOCK_USERS.find(u => u.id === userId);
       
-      if (error) {
-        toast.error(error.message);
-        throw error;
+      if (!selectedUser) {
+        toast.error("Utilisateur non trouvé");
+        return;
       }
       
-      // Success - user will be automatically logged in via auth state change
+      localStorage.setItem('selectedUser', JSON.stringify(selectedUser));
+      setUser(selectedUser);
       toast.success("Connexion réussie");
       navigate('/');
     } catch (error) {
-      console.error('Sign in error:', error);
-      throw error;
+      console.error('User selection error:', error);
+      toast.error("Erreur lors de la sélection de l'utilisateur");
     }
   };
 
-  const signUp = async (email: string, fullName: string) => {
+  const signOut = () => {
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: true,
-          data: {
-            full_name: fullName,
-          },
-        }
-      });
-      
-      if (error) {
-        toast.error(error.message);
-        throw error;
-      }
-      
-      // Success - user will be automatically logged in via auth state change
-      toast.success("Inscription réussie");
-      navigate('/');
-    } catch (error) {
-      console.error('Sign up error:', error);
-      throw error;
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        toast.error(error.message);
-        throw error;
-      }
+      localStorage.removeItem('selectedUser');
+      setUser(null);
       toast.info("Déconnexion réussie");
       navigate('/auth');
     } catch (error) {
       console.error('Sign out error:', error);
-      throw error;
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, users: MOCK_USERS, isLoading, selectUser, signOut }}>
       {children}
     </AuthContext.Provider>
   );

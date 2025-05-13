@@ -2,18 +2,15 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { z } from 'zod';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Auth = () => {
-  const { user, signIn, signUp } = useAuth();
+  const { user, users, selectUser } = useAuth();
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [fullName, setFullName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   // If user is already logged in, redirect to home
@@ -21,41 +18,20 @@ const Auth = () => {
     return <Navigate to="/" replace />;
   }
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleUserSelection = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
     
     try {
-      await signIn(email);
-    } catch (err) {
-      // Error is handled in the auth context
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsLoading(true);
-    
-    // Validate inputs
-    try {
-      const schema = z.object({
-        email: z.string().email("Email invalide"),
-        fullName: z.string().min(2, "Nom complet requis")
-      });
-      
-      schema.parse({ email, fullName });
-      
-      await signUp(email, fullName);
-    } catch (err: any) {
-      if (err instanceof z.ZodError) {
-        setError(err.errors[0].message);
-      } else {
-        setError(err.message || "Une erreur est survenue");
+      if (!selectedUserId) {
+        setError("Veuillez sélectionner un utilisateur");
+        return;
       }
+      
+      await selectUser(selectedUserId);
+    } catch (err) {
+      setError("Une erreur est survenue lors de la sélection de l'utilisateur");
     } finally {
       setIsLoading(false);
     }
@@ -67,77 +43,37 @@ const Auth = () => {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Gestion Budgets</CardTitle>
           <CardDescription>
-            Connectez-vous pour gérer vos campagnes
+            Sélectionnez votre profil pour accéder à l'application
           </CardDescription>
         </CardHeader>
-        <Tabs defaultValue="login" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Connexion</TabsTrigger>
-            <TabsTrigger value="register">Inscription</TabsTrigger>
-          </TabsList>
-          <TabsContent value="login">
-            <form onSubmit={handleSignIn}>
-              <CardContent className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="votre@email.com" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
-                <p className="text-sm text-muted-foreground">
-                  Vous serez connecté directement après avoir saisi votre email
-                </p>
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Connexion en cours..." : "Connexion"}
-                </Button>
-              </CardFooter>
-            </form>
-          </TabsContent>
-          <TabsContent value="register">
-            <form onSubmit={handleSignUp}>
-              <CardContent className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Nom complet</Label>
-                  <Input 
-                    id="fullName" 
-                    placeholder="John Doe" 
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="votre@email.com" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
-                <p className="text-sm text-muted-foreground">
-                  Vous serez inscrit et connecté directement après avoir saisi vos informations
-                </p>
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Inscription en cours..." : "Inscription"}
-                </Button>
-              </CardFooter>
-            </form>
-          </TabsContent>
-        </Tabs>
+        <form onSubmit={handleUserSelection}>
+          <CardContent className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="user-select">Sélectionner un utilisateur</Label>
+              <Select onValueChange={setSelectedUserId} value={selectedUserId}>
+                <SelectTrigger id="user-select">
+                  <SelectValue placeholder="Choisir un utilisateur" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.full_name} ({user.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <p className="text-sm text-muted-foreground">
+              Vous serez connecté directement après avoir sélectionné votre profil
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Connexion en cours..." : "Connexion"}
+            </Button>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   );
