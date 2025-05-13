@@ -14,6 +14,7 @@ import { BarChart3, Trash2, PanelLeftOpen, Minimize2, Filter } from 'lucide-reac
 import { getCampaignWeeks } from '@/utils/dateUtils';
 import { AdSetManager } from '@/components/adSets/AdSetManager';
 import { AdSetDetails } from '@/components/adSets/AdSetDetails';
+import { BudgetChart } from '@/components/charts/BudgetChart';
 
 interface CampaignRowProps {
   campaign: Campaign;

@@ -94,7 +94,10 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   
   autoDistributeBudget: async (campaignId, method, percentages) => {
     try {
-      await autoDistributeBudgetService(campaignId, method, get().campaigns, get().weeks, percentages);
+      // Pass all required arguments to the service function
+      const campaigns = get().campaigns;
+      const weeks = get().weeks;
+      await autoDistributeBudgetService(campaignId, method, campaigns, weeks, percentages);
       await get().fetchCampaigns(); // Refresh campaigns list
     } catch (error) {
       console.error('Error auto-distributing budget:', error);

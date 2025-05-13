@@ -57,7 +57,7 @@ export function mapToSupabaseCampaign(campaign: Omit<Campaign, "id" | "createdAt
     total_budget: campaign.totalBudget,
     duration_days: campaign.durationDays,
     weekly_budgets: campaign.weeklyBudgets,
-    actual_budgets: campaign.actualBudgets
+    actual_budgets: campaign.actualBudgets || {}
   };
 }
 
