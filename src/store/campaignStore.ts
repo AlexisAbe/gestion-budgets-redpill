@@ -5,6 +5,7 @@ import { generateWeeksForYear, WeeklyView } from '../utils/dateUtils';
 import { isBudgetBalanced, distributeEvenlyAcrossWeeks } from '../utils/budgetUtils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { mapToCampaign, mapToSupabaseCampaign } from '@/utils/supabaseUtils';
 
 const YEAR = 2025;
 
@@ -37,8 +38,10 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
       
       if (error) throw error;
       
-      set({ campaigns: data as Campaign[] });
-      console.log('Campaigns fetched from Supabase:', data);
+      // Map database response to our frontend Campaign type
+      const campaigns = (data || []).map(item => mapToCampaign(item));
+      set({ campaigns });
+      console.log('Campaigns fetched from Supabase:', campaigns);
     } catch (error) {
       console.error('Error fetching campaigns:', error);
       toast.error('Erreur lors de la récupération des campagnes');
@@ -59,28 +62,34 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
         );
       }
       
+      // Convert to snake_case for Supabase
+      const supabaseCampaignData = mapToSupabaseCampaign(campaignData);
+      
       const { data, error } = await supabase
         .from('campaigns')
-        .insert(campaignData)
+        .insert(supabaseCampaignData)
         .select()
         .single();
       
       if (error) throw error;
       
-      set(state => ({ campaigns: [data as Campaign, ...state.campaigns] }));
+      // Convert from snake_case to our frontend type
+      const newCampaign = mapToCampaign(data);
       
-      console.log(`Campaign "${data.name}" added`, data);
+      set(state => ({ campaigns: [newCampaign, ...state.campaigns] }));
+      
+      console.log(`Campaign "${newCampaign.name}" added`, newCampaign);
       
       // Check if budget is balanced
-      const balanced = isBudgetBalanced(data as Campaign);
+      const balanced = isBudgetBalanced(newCampaign);
       
       if (!balanced) {
-        toast.warning(`La campagne "${data.name}" a un budget non alloué. Veuillez vérifier les allocations hebdomadaires.`);
+        toast.warning(`La campagne "${newCampaign.name}" a un budget non alloué. Veuillez vérifier les allocations hebdomadaires.`);
       } else {
-        toast.success(`Campagne "${data.name}" ajoutée avec succès`);
+        toast.success(`Campagne "${newCampaign.name}" ajoutée avec succès`);
       }
       
-      return data.id;
+      return newCampaign.id;
     } catch (error) {
       console.error('Error adding campaign:', error);
       toast.error('Erreur lors de l\'ajout de la campagne');
@@ -92,9 +101,21 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   
   updateCampaign: async (id, data) => {
     try {
+      // Convert to snake_case for Supabase
+      const updateData: Record<string, any> = {};
+      
+      if ('mediaChannel' in data) updateData.media_channel = data.mediaChannel;
+      if ('name' in data) updateData.name = data.name;
+      if ('objective' in data) updateData.objective = data.objective;
+      if ('targetAudience' in data) updateData.target_audience = data.targetAudience;
+      if ('startDate' in data) updateData.start_date = data.startDate;
+      if ('totalBudget' in data) updateData.total_budget = data.totalBudget;
+      if ('durationDays' in data) updateData.duration_days = data.durationDays;
+      if ('weeklyBudgets' in data) updateData.weekly_budgets = data.weeklyBudgets;
+      
       const { error } = await supabase
         .from('campaigns')
-        .update(data)
+        .update(updateData)
         .eq('id', id);
       
       if (error) throw error;

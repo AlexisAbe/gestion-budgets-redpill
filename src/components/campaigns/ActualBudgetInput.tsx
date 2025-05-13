@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { formatCurrency } from '@/utils/budgetUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { formatCurrency } from '@/utils/budgetUtils';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
 
 interface ActualBudgetInputProps {
   campaignId: string;
@@ -11,15 +13,19 @@ interface ActualBudgetInputProps {
 }
 
 export function ActualBudgetInput({ campaignId, weekLabel, plannedBudget }: ActualBudgetInputProps) {
-  const [inputValue, setInputValue] = useState('');
-  const [displayValue, setDisplayValue] = useState<number | null>(null);
+  const [actualBudget, setActualBudget] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [difference, setDifference] = useState(0);
-
-  // Fetch actual budget on mount
+  const [inputValue, setInputValue] = useState('');
+  
+  // Calculate variance
+  const variance = actualBudget !== null ? actualBudget - plannedBudget : 0;
+  const hasVariance = actualBudget !== null && variance !== 0;
+  
+  // Get actual budget from the database
   useEffect(() => {
     async function fetchActualBudget() {
+      setIsLoading(true);
       try {
         const { data, error } = await supabase
           .from('actual_budgets')
@@ -28,14 +34,16 @@ export function ActualBudgetInput({ campaignId, weekLabel, plannedBudget }: Actu
           .eq('week_label', weekLabel)
           .single();
         
-        if (error && error.code !== 'PGRST116') { // PGRST116 is 'no rows returned'
-          throw error;
+        if (error) {
+          if (error.code !== 'PGRST116') { // No rows found
+            console.error('Error fetching actual budget:', error);
+          }
+          return;
         }
         
         if (data) {
-          setDisplayValue(Number(data.amount));
+          setActualBudget(data.amount);
           setInputValue(data.amount.toString());
-          setDifference(Number(data.amount) - plannedBudget);
         }
       } catch (error) {
         console.error('Error fetching actual budget:', error);
@@ -45,108 +53,130 @@ export function ActualBudgetInput({ campaignId, weekLabel, plannedBudget }: Actu
     }
     
     fetchActualBudget();
-  }, [campaignId, weekLabel, plannedBudget]);
-
-  const handleFocus = () => {
-    setIsEditing(true);
-  };
-
-  const handleBlur = async () => {
-    setIsEditing(false);
-    
-    // If input is empty or not changed, don't update
-    if (!inputValue.trim() || (displayValue !== null && Number(inputValue) === displayValue)) {
-      return;
-    }
-    
-    const numericValue = Number(inputValue);
-    
-    if (isNaN(numericValue)) {
-      toast.error("Veuillez entrer un montant valide");
-      setInputValue(displayValue?.toString() || '');
-      return;
-    }
-    
+  }, [campaignId, weekLabel]);
+  
+  // Update actual budget
+  const updateActualBudget = async (value: number) => {
+    setIsLoading(true);
     try {
-      const { error } = await supabase
+      // Check if we already have an entry for this campaign and week
+      const { data, error: checkError } = await supabase
         .from('actual_budgets')
-        .upsert({
-          campaign_id: campaignId,
-          week_label: weekLabel,
-          amount: numericValue
-        }, {
-          onConflict: 'campaign_id,week_label'
-        });
+        .select('id')
+        .eq('campaign_id', campaignId)
+        .eq('week_label', weekLabel)
+        .single();
       
-      if (error) throw error;
+      let error;
       
-      setDisplayValue(numericValue);
-      setDifference(numericValue - plannedBudget);
-      toast.success(`Budget réel mis à jour pour la semaine ${weekLabel}`);
+      if (checkError && checkError.code === 'PGRST116') {
+        // No entry found, create a new one
+        const { error: insertError } = await supabase
+          .from('actual_budgets')
+          .insert({
+            campaign_id: campaignId,
+            week_label: weekLabel,
+            amount: value
+          });
+        error = insertError;
+      } else {
+        // Entry found, update it
+        const { error: updateError } = await supabase
+          .from('actual_budgets')
+          .update({ amount: value })
+          .eq('campaign_id', campaignId)
+          .eq('week_label', weekLabel);
+        error = updateError;
+      }
+      
+      if (error) {
+        throw error;
+      }
+      
+      setActualBudget(value);
+      toast.success(`Budget réel mis à jour: ${formatCurrency(value)}`);
     } catch (error) {
       console.error('Error updating actual budget:', error);
-      toast.error("Erreur lors de la mise à jour du budget réel");
+      toast.error('Erreur lors de la mise à jour du budget réel');
+    } finally {
+      setIsLoading(false);
+      setIsEditing(false);
     }
   };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
   };
-
+  
+  // Handle save
+  const handleSave = () => {
+    const value = parseFloat(inputValue);
+    if (isNaN(value)) {
+      toast.error('Veuillez entrer un nombre valide');
+      return;
+    }
+    updateActualBudget(value);
+  };
+  
+  // Handle key press
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      e.currentTarget.blur();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+      setInputValue(actualBudget?.toString() || '');
     }
   };
-
-  if (isLoading) {
-    return <div className="actual-budget-cell text-center p-2">-</div>;
-  }
-
-  // Calculate status color
-  const getDifferenceColor = () => {
-    if (difference === 0 || !displayValue) return "text-gray-500";
-    if (difference < 0) return "text-green-600"; // Under budget (good)
-    return "text-red-600"; // Over budget (bad)
-  };
-
-  const getDifferencePrefix = () => {
-    if (difference === 0 || !displayValue) return "";
-    if (difference < 0) return "-"; // Under budget
-    return "+"; // Over budget
-  };
-
-  return (
-    <div className="actual-budget-cell relative">
-      {isEditing ? (
-        <input
+  
+  if (isEditing) {
+    return (
+      <div className="flex items-center">
+        <Input
           type="number"
-          className="budget-cell-input"
           value={inputValue}
-          onChange={handleChange}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          onBlur={handleSave}
           autoFocus
+          className="h-8 w-24 text-right"
+          disabled={isLoading}
         />
-      ) : (
-        <div 
-          onClick={() => setIsEditing(true)}
-          className="w-full h-full p-2 cursor-pointer text-center flex flex-col items-center justify-center hover:bg-primary/5 rounded"
-        >
-          {displayValue !== null ? (
-            <>
-              <span>{formatCurrency(displayValue)}</span>
-              {plannedBudget > 0 && displayValue > 0 && (
-                <span className={`text-xs ${getDifferenceColor()}`}>
-                  {getDifferencePrefix()}{formatCurrency(Math.abs(difference))}
-                </span>
+      </div>
+    );
+  }
+  
+  return (
+    <div
+      className="cursor-pointer px-2 py-1 group hover:bg-muted rounded"
+      onClick={() => {
+        setIsEditing(true);
+        setInputValue(actualBudget?.toString() || '');
+      }}
+    >
+      {isLoading ? (
+        <div className="w-full h-4 bg-muted animate-pulse rounded"></div>
+      ) : actualBudget !== null ? (
+        <div className="flex items-center justify-between">
+          <span className={`text-sm ${hasVariance ? (variance > 0 ? 'text-red-500' : 'text-green-500') : ''}`}>
+            {formatCurrency(actualBudget)}
+          </span>
+          
+          {hasVariance && (
+            <div className="flex items-center ml-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+              {variance > 0 ? (
+                <ArrowUpIcon className="h-3 w-3 text-red-500 mr-1" />
+              ) : (
+                <ArrowDownIcon className="h-3 w-3 text-green-500 mr-1" />
               )}
-            </>
-          ) : (
-            <span className="text-gray-400">Ajouter</span>
+              <span className={variance > 0 ? 'text-red-500' : 'text-green-500'}>
+                {variance > 0 ? '+' : ''}{formatCurrency(variance)}
+              </span>
+            </div>
           )}
         </div>
+      ) : (
+        <span className="text-muted-foreground text-sm group-hover:text-primary">Click to add</span>
       )}
     </div>
   );
