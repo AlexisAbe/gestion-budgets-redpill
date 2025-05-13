@@ -56,6 +56,7 @@ export type Database = {
       }
       ad_sets: {
         Row: {
+          actual_budgets: Json
           budget_percentage: number
           campaign_id: string
           created_at: string
@@ -66,6 +67,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          actual_budgets?: Json
           budget_percentage?: number
           campaign_id: string
           created_at?: string
@@ -76,6 +78,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          actual_budgets?: Json
           budget_percentage?: number
           campaign_id?: string
           created_at?: string
