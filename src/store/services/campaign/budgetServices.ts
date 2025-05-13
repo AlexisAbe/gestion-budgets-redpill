@@ -1,4 +1,3 @@
-
 import { Campaign } from '@/types/campaign';
 import { WeeklyView } from '@/utils/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +7,7 @@ import { supabaseService } from '../base/supabaseService';
 import { distributeByPercentages, distributeEvenlyAcrossWeeks, distributeByCurve } from '@/utils/budgetUtils';
 import { mapToCampaign } from '@/utils/supabaseUtils';
 
-// Update the weekly budget for a campaign - removed unnecessary campaigns parameter
+// Update the weekly budget for a campaign
 export async function updateWeeklyBudgetService(
   campaignId: string, 
   weekLabel: string, 

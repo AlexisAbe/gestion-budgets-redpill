@@ -65,11 +65,14 @@ export const createBudgetActions = (set: any, get: () => CampaignState) => ({
     percentages?: Record<string, number>
   ) => {
     try {
+      // Get the weeks from the store to pass to the service
+      const currentWeeks = get().weeks;
+      
       await autoDistributeBudgetService(
         campaignId, 
         distributionStrategy,
         get().campaigns, 
-        get().weeks, 
+        currentWeeks, 
         percentages
       );
       

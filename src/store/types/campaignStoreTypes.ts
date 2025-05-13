@@ -20,7 +20,6 @@ export interface CampaignState {
 export const initialCampaignState = {
   campaigns: [],
   filteredCampaigns: [],
-  weeks: [],
   isLoading: false,
   error: null,
 };
