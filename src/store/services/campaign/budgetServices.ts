@@ -7,36 +7,27 @@ import { toast } from 'sonner';
 import { supabaseService } from '../base/supabaseService';
 import { distributeByPercentages, distributeEvenlyAcrossWeeks, distributeByCurve } from '@/utils/budgetUtils';
 
-// Update the weekly budget for a campaign
+// Update the weekly budget for a campaign - removed unnecessary campaigns parameter
 export async function updateWeeklyBudgetService(
   campaignId: string, 
   weekLabel: string, 
-  amount: number,
-  campaigns?: Campaign[]
+  amount: number
 ): Promise<void> {
   try {
-    // If campaigns array is provided, find the campaign from it
-    let campaign: Campaign | undefined;
-    if (campaigns && campaigns.length > 0) {
-      campaign = campaigns.find(c => c.id === campaignId);
+    // Get the campaign from the database
+    const { data, error } = await supabase
+      .from('campaigns')
+      .select('*')
+      .eq('id', campaignId)
+      .single();
+    
+    if (error) {
+      return supabaseService.handleError(error, 'Campaign not found');
     }
     
-    // If not found or campaigns not provided, get it from the database
-    if (!campaign) {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('id', campaignId)
-        .single();
-      
-      if (error) {
-        return supabaseService.handleError(error, 'Campaign not found');
-      }
-      
-      campaign = data as unknown as Campaign;
-    }
+    const campaign = data;
     
-    const newWeeklyBudgets = { ...campaign.weeklyBudgets };
+    const newWeeklyBudgets = { ...campaign.weekly_budgets };
     
     // Update the budget for the specified week
     newWeeklyBudgets[weekLabel] = amount;
@@ -44,13 +35,13 @@ export async function updateWeeklyBudgetService(
     console.log('Updating weekly budget for campaign ID:', campaignId, 'week:', weekLabel, 'amount:', amount);
     
     // Update in Supabase
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from('campaigns')
       .update({ weekly_budgets: newWeeklyBudgets })
       .eq('id', campaignId);
     
-    if (error) {
-      return supabaseService.handleError(error, 'Supabase update error');
+    if (updateError) {
+      return supabaseService.handleError(updateError, 'Supabase update error');
     }
     
     console.log(`Weekly budget updated for campaign "${campaign.name}"`, {

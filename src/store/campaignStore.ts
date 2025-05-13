@@ -17,7 +17,7 @@ interface CampaignState {
   deleteCampaign: (campaignId: string) => Promise<void>;
   updateWeeklyBudget: (campaignId: string, weekLabel: string, amount: number) => Promise<void>;
   updateActualBudget: (campaignId: string, weekLabel: string, amount: number) => Promise<void>;
-  autoDistributeBudget: (campaignId: string, distributionStrategy: string, percentages?: Record<string, number>) => Promise<void>;
+  autoDistributeBudget: (campaignId: string, distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual', percentages?: Record<string, number>) => Promise<void>;
   resetStore: () => void;
 }
 
@@ -72,16 +72,9 @@ export const useCampaignStore = create<CampaignState>((set, get) => {
       };
       
       try {
-        const campaignId = await addCampaignService(campaignWithClient, get().weeks);
-        if (campaignId) {
-          // Create a new campaign object with the returned ID and basic data
-          const newCampaign: Campaign = {
-            ...campaignWithClient,
-            id: campaignId,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          
+        const newCampaign = await addCampaignService(campaignWithClient);
+        
+        if (newCampaign) {
           set(state => ({
             campaigns: [...state.campaigns, newCampaign],
             filteredCampaigns: [...state.filteredCampaigns, newCampaign]
@@ -131,7 +124,10 @@ export const useCampaignStore = create<CampaignState>((set, get) => {
     
     updateWeeklyBudget: async (campaignId, weekLabel, amount) => {
       try {
-        await updateWeeklyBudgetService(campaignId, weekLabel, amount, get().campaigns);
+        // Fix error: Expected 2 arguments, but got 1
+        // Now passing both campaignId and the needed data
+        await updateWeeklyBudgetService(campaignId, weekLabel, amount);
+        
         set(state => ({
           campaigns: state.campaigns.map(campaign => {
             if (campaign.id === campaignId) {
@@ -185,7 +181,16 @@ export const useCampaignStore = create<CampaignState>((set, get) => {
     
     autoDistributeBudget: async (campaignId, distributionStrategy, percentages) => {
       try {
-        await autoDistributeBudgetService(campaignId, distributionStrategy, get().campaigns, get().weeks, percentages);
+        // Fix error: Argument of type 'string' is not assignable to parameter of type '"even" | "front-loaded" | "back-loaded" | "bell-curve" | "manual"'
+        // We need to cast distributionStrategy to the expected type since we've properly typed the function parameters
+        await autoDistributeBudgetService(
+          campaignId, 
+          distributionStrategy as 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual',
+          get().campaigns, 
+          get().weeks, 
+          percentages
+        );
+        
         const updatedCampaigns = await fetchCampaignsService();
         
         // Filter campaigns based on selected client
@@ -211,10 +216,11 @@ export const useCampaignStore = create<CampaignState>((set, get) => {
   };
 });
 
-// Add a listener to update filteredCampaigns when client changes
+// Fix error: Expected 1 arguments, but got 2
+// The subscribe method should take a single callback function
 useClientStore.subscribe(
-  (state) => state.selectedClientId,
-  (selectedClientId) => {
+  (state) => {
+    const { selectedClientId } = state;
     const campaignStore = useCampaignStore.getState();
     const filteredCampaigns = selectedClientId 
       ? campaignStore.campaigns.filter(campaign => campaign.clientId === selectedClientId)

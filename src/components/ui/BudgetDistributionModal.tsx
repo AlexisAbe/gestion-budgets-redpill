@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -27,6 +28,7 @@ interface WeekPercentage {
 }
 
 export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistributionModalProps) {
+  // Fix the type of selectedMethod to match the expected types in autoDistributeBudgetService
   const [selectedMethod, setSelectedMethod] = useState<'even' | 'front-loaded' | 'back-loaded' | 'bell-curve'>('even');
   const [activeTab, setActiveTab] = useState('auto');
   const { autoDistributeBudget, weeks } = useCampaignStore();
@@ -79,6 +81,7 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
 
   const handleDistribute = () => {
     if (activeTab === 'auto') {
+      // No need to provide a third argument for auto distribution methods
       autoDistributeBudget(campaign.id, selectedMethod);
     } else {
       // For manual distribution, check if percentages add up to 100%
@@ -97,7 +100,7 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
         percentageObject[week.weekLabel] = week.percentage;
       });
       
-      // Use the existing autoDistributeBudget function with 'manual' method and pass the percentages
+      // Pass the explicit 'manual' type and the percentages
       autoDistributeBudget(campaign.id, 'manual', percentageObject);
     }
     
