@@ -1,178 +1,207 @@
-
 import { create } from 'zustand';
-import { Campaign, MediaChannel, MarketingObjective } from '../types/campaign';
-import { WeeklyView, generateWeeksForYear } from '../utils/dateUtils';
-import { 
-  fetchCampaignsService,
-  addCampaignService,
-  updateCampaignService,
-  deleteCampaignService,
-  updateWeeklyBudgetService,
-  autoDistributeBudgetService,
-  resetStoreService
-} from './services/campaign';
-
-const YEAR = 2025;
+import { persist } from 'zustand/middleware';
+import { Campaign, WeeklyView } from '@/types/campaign';
+import { fetchCampaignsService, addCampaignService, updateCampaignService, deleteCampaignService, updateWeeklyBudgetService, autoDistributeBudgetService, resetStoreService } from './services/campaign';
+import { useClientStore } from './clientStore';
 
 interface CampaignState {
   campaigns: Campaign[];
+  filteredCampaigns: Campaign[];
   weeks: WeeklyView[];
   isLoading: boolean;
+  error: string | null;
   fetchCampaigns: () => Promise<void>;
-  addCampaign: (campaign: Omit<Campaign, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
-  updateCampaign: (id: string, data: Partial<Campaign>) => Promise<void>;
-  deleteCampaign: (id: string) => Promise<void>;
+  addCampaign: (campaign: Omit<Campaign, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Campaign | null>;
+  updateCampaign: (campaignId: string, updates: Partial<Campaign>) => Promise<void>;
+  deleteCampaign: (campaignId: string) => Promise<void>;
   updateWeeklyBudget: (campaignId: string, weekLabel: string, amount: number) => Promise<void>;
-  autoDistributeBudget: (campaignId: string, method: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual', percentages?: Record<string, number>) => Promise<void>;
-  resetStore: () => Promise<void>;
+  updateActualBudget: (campaignId: string, weekLabel: string, amount: number) => Promise<void>;
+  autoDistributeBudget: (campaignId: string, distributionStrategy: string) => Promise<void>;
+  resetStore: () => void;
 }
 
-export const useCampaignStore = create<CampaignState>((set, get) => ({
+const initialState = {
   campaigns: [],
-  weeks: generateWeeksForYear(YEAR),
+  filteredCampaigns: [],
+  weeks: [],
   isLoading: false,
-  
-  fetchCampaigns: async () => {
-    set({ isLoading: true });
-    try {
-      const campaigns = await fetchCampaignsService();
-      set({ campaigns });
-    } catch (error) {
-      console.error('Error fetching campaigns:', error);
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-  
-  addCampaign: async (campaignData) => {
-    set({ isLoading: true });
-    try {
-      const newCampaignId = await addCampaignService(campaignData, get().weeks);
-      await get().fetchCampaigns(); // Refresh campaigns list
-      return newCampaignId;
-    } catch (error) {
-      console.error('Error adding campaign:', error);
-      throw error;
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-  
-  updateCampaign: async (id, data) => {
-    try {
-      const campaign = {
-        ...data,
-        id
-      } as Campaign;
-      await updateCampaignService(campaign);
-      await get().fetchCampaigns(); // Refresh campaigns list
-    } catch (error) {
-      console.error('Error updating campaign:', error);
-    }
-  },
-  
-  deleteCampaign: async (id) => {
-    try {
-      const campaignToDelete = get().campaigns.find(c => c.id === id);
-      if (!campaignToDelete) return;
-      
-      await deleteCampaignService(id, campaignToDelete.name);
-      set(state => ({ campaigns: state.campaigns.filter(c => c.id !== id) }));
-    } catch (error) {
-      console.error('Error deleting campaign:', error);
-    }
-  },
-  
-  updateWeeklyBudget: async (campaignId, weekLabel, amount) => {
-    try {
-      // Pass the campaigns array as the 4th argument
-      await updateWeeklyBudgetService(campaignId, weekLabel, amount, get().campaigns);
-      await get().fetchCampaigns(); // Refresh campaigns list
-    } catch (error) {
-      console.error('Error updating weekly budget:', error);
-    }
-  },
-  
-  autoDistributeBudget: async (campaignId, method, percentages) => {
-    try {
-      // Pass all required arguments to the service function
-      const campaigns = get().campaigns;
-      const weeks = get().weeks;
-      await autoDistributeBudgetService(campaignId, method, campaigns, weeks, percentages);
-      await get().fetchCampaigns(); // Refresh campaigns list
-    } catch (error) {
-      console.error('Error auto-distributing budget:', error);
-    }
-  },
-  
-  resetStore: async () => {
-    try {
-      await resetStoreService();
-      set({
-        campaigns: [],
-        weeks: generateWeeksForYear(YEAR)
-      });
-    } catch (error) {
-      console.error('Error resetting store:', error);
-    }
-  }
-}));
+  error: null,
+};
 
-// Function to add example campaigns (now with Supabase persistence)
-export async function addExampleCampaigns() {
-  const store = useCampaignStore.getState();
-  
-  try {
-    // Facebook Awareness Campaign
-    await store.addCampaign({
-      mediaChannel: "META" as MediaChannel,
-      name: "Summer Resorts Awareness",
-      objective: "awareness" as MarketingObjective,
-      targetAudience: "Families with children 5-12",
-      startDate: "2025-04-01", // April 1st
-      totalBudget: 25000,
-      durationDays: 60, // 2 months
-      weeklyBudgets: {}
-    });
+export const useCampaignStore = create<CampaignState>()((set, get) => {
+  return {
+    ...initialState,
     
-    // Google Search Campaign
-    await store.addCampaign({
-      mediaChannel: "GOOGLE" as MediaChannel,
-      name: "Winter Ski Resorts",
-      objective: "conversion" as MarketingObjective,
-      targetAudience: "Adults 25-45, skiing enthusiasts",
-      startDate: "2025-10-15", // October 15th
-      totalBudget: 15000,
-      durationDays: 90, // 3 months
-      weeklyBudgets: {}
-    });
+    fetchCampaigns: async () => {
+      set({ isLoading: true, error: null });
+      try {
+        const { selectedClientId } = useClientStore.getState();
+        const result = await fetchCampaignsService();
+        
+        // Filter campaigns based on selected client
+        const filteredCampaigns = selectedClientId 
+          ? result.campaigns.filter(campaign => campaign.clientId === selectedClientId)
+          : result.campaigns;
+          
+        set({ 
+          campaigns: result.campaigns,
+          filteredCampaigns,
+          weeks: result.weeks,
+          isLoading: false 
+        });
+      } catch (error) {
+        console.error('Error fetching campaigns:', error);
+        set({ 
+          error: error instanceof Error ? error.message : 'An unknown error occurred',
+          isLoading: false
+        });
+      }
+    },
     
-    // LinkedIn Campaign
-    await store.addCampaign({
-      mediaChannel: "LINKEDIN" as MediaChannel,
-      name: "Corporate Retreats",
-      objective: "consideration" as MarketingObjective,
-      targetAudience: "HR Managers, Event Planners",
-      startDate: "2025-02-01", // February 1st
-      totalBudget: 12000,
-      durationDays: 45, // 1.5 months
-      weeklyBudgets: {}
-    });
+    addCampaign: async (campaignData) => {
+      const { selectedClientId } = useClientStore.getState();
+      if (!selectedClientId) {
+        set({ error: 'No client selected' });
+        return null;
+      }
+      
+      // Add client ID to the campaign data
+      const campaignWithClient = {
+        ...campaignData,
+        clientId: selectedClientId
+      };
+      
+      try {
+        const newCampaign = await addCampaignService(campaignWithClient);
+        if (newCampaign) {
+          set(state => ({
+            campaigns: [...state.campaigns, newCampaign],
+            filteredCampaigns: [...state.filteredCampaigns, newCampaign]
+          }));
+          return newCampaign;
+        }
+        return null;
+      } catch (error) {
+        console.error('Error adding campaign:', error);
+        set({ error: error instanceof Error ? error.message : 'An unknown error occurred' });
+        return null;
+      }
+    },
     
-    // Email Campaign
-    await store.addCampaign({
-      mediaChannel: "EMAIL" as MediaChannel,
-      name: "Loyalty Members Exclusive",
-      objective: "loyalty" as MarketingObjective,
-      targetAudience: "Existing Belambra Club members",
-      startDate: "2025-06-01", // June 1st
-      totalBudget: 5000,
-      durationDays: 30, // 1 month
-      weeklyBudgets: {}
-    });
+    updateCampaign: async (campaignId, updates) => {
+      try {
+        await updateCampaignService(campaignId, updates);
+        set(state => ({
+          campaigns: state.campaigns.map(campaign =>
+            campaign.id === campaignId ? { ...campaign, ...updates } : campaign
+          ),
+          filteredCampaigns: state.filteredCampaigns.map(campaign =>
+            campaign.id === campaignId ? { ...campaign, ...updates } : campaign
+          ),
+        }));
+      } catch (error) {
+        console.error('Error updating campaign:', error);
+        set({ error: error instanceof Error ? error.message : 'An unknown error occurred' });
+      }
+    },
     
-    console.log("Example campaigns added to Supabase");
-  } catch (error) {
-    console.error("Error adding example campaigns:", error);
+    deleteCampaign: async (campaignId) => {
+      try {
+        await deleteCampaignService(campaignId);
+        set(state => ({
+          campaigns: state.campaigns.filter(campaign => campaign.id !== campaignId),
+          filteredCampaigns: state.filteredCampaigns.filter(campaign => campaign.id !== campaignId),
+        }));
+      } catch (error) {
+        console.error('Error deleting campaign:', error);
+        set({ error: error instanceof Error ? error.message : 'An unknown error occurred' });
+      }
+    },
+    
+    updateWeeklyBudget: async (campaignId, weekLabel, amount) => {
+      try {
+        await updateWeeklyBudgetService(campaignId, weekLabel, amount);
+        set(state => ({
+          campaigns: state.campaigns.map(campaign => {
+            if (campaign.id === campaignId) {
+              return {
+                ...campaign,
+                weeklyBudgets: {
+                  ...campaign.weeklyBudgets,
+                  [weekLabel]: amount,
+                },
+              };
+            }
+            return campaign;
+          }),
+          filteredCampaigns: state.filteredCampaigns.map(campaign => {
+            if (campaign.id === campaignId) {
+              return {
+                ...campaign,
+                weeklyBudgets: {
+                  ...campaign.weeklyBudgets,
+                  [weekLabel]: amount,
+                },
+              };
+            }
+            return campaign;
+          }),
+        }));
+      } catch (error) {
+        console.error('Error updating weekly budget:', error);
+        set({ error: error instanceof Error ? error.message : 'An unknown error occurred' });
+      }
+    },
+    
+    updateActualBudget: async (campaignId: string, weekLabel: string, amount: number) => {
+      set(state => ({
+        campaigns: state.campaigns.map(campaign => {
+          if (campaign.id === campaignId) {
+            const updatedActualBudgets = { ...campaign.actualBudgets, [weekLabel]: amount };
+            return { ...campaign, actualBudgets: updatedActualBudgets };
+          }
+          return campaign;
+        }),
+        filteredCampaigns: state.filteredCampaigns.map(campaign => {
+          if (campaign.id === campaignId) {
+            const updatedActualBudgets = { ...campaign.actualBudgets, [weekLabel]: amount };
+            return { ...campaign, actualBudgets: updatedActualBudgets };
+          }
+          return campaign;
+        }),
+      }));
+    },
+    
+    autoDistributeBudget: async (campaignId, distributionStrategy) => {
+      try {
+        await autoDistributeBudgetService(campaignId, distributionStrategy);
+        const { campaigns } = await fetchCampaignsService();
+        set({ 
+          campaigns: campaigns,
+          filteredCampaigns: campaigns
+        });
+      } catch (error) {
+        console.error('Error auto distributing budget:', error);
+        set({ error: error instanceof Error ? error.message : 'An unknown error occurred' });
+      }
+    },
+    
+    resetStore: () => {
+      resetStoreService();
+      set(initialState);
+    },
+  };
+});
+
+// Add a listener to update filteredCampaigns when client changes
+useClientStore.subscribe(
+  (state) => state.selectedClientId,
+  (selectedClientId) => {
+    const campaignStore = useCampaignStore.getState();
+    const filteredCampaigns = selectedClientId 
+      ? campaignStore.campaigns.filter(campaign => campaign.clientId === selectedClientId)
+      : campaignStore.campaigns;
+      
+    useCampaignStore.setState({ filteredCampaigns });
   }
-}
+);

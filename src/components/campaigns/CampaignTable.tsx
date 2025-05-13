@@ -7,9 +7,11 @@ import { AddCampaignForm } from './AddCampaignForm';
 import { ExportTools } from '../export/ExportTools';
 import { ChannelFilter } from '../filters/ChannelFilter';
 import { MediaChannel } from '@/types/campaign';
+import { useClientStore } from '@/store/clientStore';
 
 export function CampaignTable() {
-  const { campaigns, weeks } = useCampaignStore();
+  const { campaigns, filteredCampaigns, weeks } = useCampaignStore();
+  const { selectedClientId } = useClientStore();
   const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({});
   const [inlineAdSets, setInlineAdSets] = useState<Record<string, boolean>>({});
   const [selectedChannels, setSelectedChannels] = useState<MediaChannel[]>([]);
@@ -29,13 +31,17 @@ export function CampaignTable() {
   };
 
   // Filter campaigns by selected channels
-  const filteredCampaigns = useMemo(() => {
-    if (selectedChannels.length === 0) {
-      // If no channels are selected, show all campaigns
-      return campaigns;
+  const displayedCampaigns = useMemo(() => {
+    // First filter by client (using filteredCampaigns which is already filtered by client)
+    let result = filteredCampaigns;
+    
+    // Then filter by selected channels if any
+    if (selectedChannels.length > 0) {
+      result = result.filter(campaign => selectedChannels.includes(campaign.mediaChannel));
     }
-    return campaigns.filter(campaign => selectedChannels.includes(campaign.mediaChannel));
-  }, [campaigns, selectedChannels]);
+    
+    return result;
+  }, [filteredCampaigns, selectedChannels]);
 
   return (
     <div className="space-y-6">
@@ -46,7 +52,7 @@ export function CampaignTable() {
             selectedChannels={selectedChannels}
             onChange={setSelectedChannels}
           />
-          <ExportTools campaigns={filteredCampaigns} weeks={weeks} />
+          <ExportTools campaigns={displayedCampaigns} weeks={weeks} />
           <AddCampaignForm />
         </div>
       </div>
@@ -75,16 +81,18 @@ export function CampaignTable() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-card text-foreground">
-                {filteredCampaigns.length === 0 && (
+                {displayedCampaigns.length === 0 && (
                   <tr>
                     <td colSpan={8 + weeks.length} className="p-8 text-center text-muted-foreground">
                       {campaigns.length === 0 
                         ? "No campaigns yet. Add a campaign to get started."
-                        : "No campaigns match your selected filters."}
+                        : selectedClientId 
+                          ? "No campaigns for this client. Add a campaign to get started."
+                          : "No campaigns match your selected filters."}
                     </td>
                   </tr>
                 )}
-                {filteredCampaigns.map(campaign => (
+                {displayedCampaigns.map(campaign => (
                   <React.Fragment key={campaign.id}>
                     <CampaignRow 
                       campaign={campaign} 

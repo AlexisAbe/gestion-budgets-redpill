@@ -29,14 +29,26 @@ export const useClientStore = create<ClientState>()(
       clients: initialClients,
       selectedClientId: initialClients[0].id,
       
-      addClient: (client) => set((state) => ({
-        clients: [...state.clients, client]
-      })),
+      addClient: (client) => set((state) => {
+        // Check if a client with the same name already exists
+        const exists = state.clients.some(
+          c => c.name.toLowerCase() === client.name.toLowerCase()
+        );
+        
+        if (exists) {
+          console.warn(`A client with the name "${client.name}" already exists`);
+          return { clients: state.clients }; // No change
+        }
+        
+        return {
+          clients: [...state.clients, client]
+        };
+      }),
       
       removeClient: (id) => set((state) => ({
         clients: state.clients.filter(client => client.id !== id),
         selectedClientId: state.selectedClientId === id ? 
-          (state.clients.length > 1 ? state.clients[0].id : null) : 
+          (state.clients.length > 1 ? state.clients.filter(c => c.id !== id)[0].id : null) : 
           state.selectedClientId
       })),
       
@@ -49,3 +61,9 @@ export const useClientStore = create<ClientState>()(
     }
   )
 );
+
+// Export a utility function to get the current client
+export const getCurrentClient = (): Client | undefined => {
+  const { clients, selectedClientId } = useClientStore.getState();
+  return clients.find(client => client.id === selectedClientId);
+};

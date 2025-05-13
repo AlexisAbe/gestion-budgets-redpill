@@ -1,3 +1,4 @@
+
 import { Campaign, MediaChannel, MarketingObjective, AdSet } from "@/types/campaign";
 import { Json } from "@/integrations/supabase/types";
 import { v4 as uuidv4 } from 'uuid';
@@ -15,6 +16,7 @@ type SupabaseCampaign = {
   created_at: string;
   updated_at: string;
   created_by: string | null;
+  client_id?: string; // Add client_id field
 };
 
 type SupabaseAdSet = {
@@ -43,6 +45,7 @@ export function mapToCampaign(supabaseCampaign: SupabaseCampaign): Campaign {
     
     return {
       id: supabaseCampaign.id,
+      clientId: supabaseCampaign.client_id || '1', // Default to first client if not specified
       mediaChannel: supabaseCampaign.media_channel as MediaChannel,
       name: supabaseCampaign.name,
       objective: supabaseCampaign.objective as MarketingObjective,
@@ -60,6 +63,7 @@ export function mapToCampaign(supabaseCampaign: SupabaseCampaign): Campaign {
   // Regular mapping without special handling
   return {
     id: supabaseCampaign.id,
+    clientId: supabaseCampaign.client_id || '1', // Default to first client if not specified
     mediaChannel: supabaseCampaign.media_channel as MediaChannel,
     name: supabaseCampaign.name,
     objective: supabaseCampaign.objective as MarketingObjective,
@@ -83,6 +87,7 @@ export function mapToSupabaseCampaign(campaign: Omit<Campaign, "id" | "createdAt
   }
   
   return {
+    client_id: campaign.clientId, // Include client_id in the Supabase data
     media_channel: campaign.mediaChannel,
     name: campaign.name,
     objective: campaign.objective,

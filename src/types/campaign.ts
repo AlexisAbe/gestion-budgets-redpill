@@ -17,6 +17,7 @@ export type MediaChannel =
 
 export interface Campaign {
   id: string;
+  clientId: string; // Add client ID to associate campaigns with clients
   mediaChannel: MediaChannel;
   name: string;
   objective: MarketingObjective;

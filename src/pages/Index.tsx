@@ -8,13 +8,19 @@ import { Toaster } from '@/components/ui/sonner';
 import { useCampaignStore } from '@/store/campaignStore';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { useClientStore } from '@/store/clientStore';
 
 const Index = () => {
-  const { fetchCampaigns, campaigns, isLoading } = useCampaignStore();
+  const { fetchCampaigns, filteredCampaigns, isLoading } = useCampaignStore();
+  const { selectedClientId, clients } = useClientStore();
+  
+  const currentClient = selectedClientId 
+    ? clients.find(client => client.id === selectedClientId) 
+    : null;
 
   useEffect(() => {
     fetchCampaigns();
-  }, [fetchCampaigns]);
+  }, [fetchCampaigns, selectedClientId]); // Refetch when client changes
 
   return (
     <MainLayout>
@@ -26,10 +32,17 @@ const Index = () => {
         </div>
       ) : (
         <div className="space-y-8">
+          {currentClient && (
+            <div className="mb-4">
+              <h1 className="text-2xl font-bold">{currentClient.name}</h1>
+              <p className="text-muted-foreground">Plateforme de gestion de budget média</p>
+            </div>
+          )}
+          
           <CampaignHeader />
           
           {/* Add the Channel Budget Summary */}
-          <ChannelBudgetSummary campaigns={campaigns} />
+          <ChannelBudgetSummary campaigns={filteredCampaigns} />
           
           <CampaignTable />
         </div>
