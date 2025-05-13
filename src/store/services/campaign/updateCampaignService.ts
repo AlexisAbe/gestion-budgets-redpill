@@ -103,6 +103,8 @@ export async function updateActualBudgetService(
   amount: number
 ): Promise<void> {
   try {
+    console.log(`Updating actual budget for campaign ${campaignId}, week ${weekLabel}: ${amount}`);
+    
     // First, get the current campaign
     const { data: campaignData, error: campaignError } = await supabase
       .from('campaigns')
@@ -130,23 +132,23 @@ export async function updateActualBudgetService(
       [weekLabel]: amount
     };
     
-    // Update in Supabase - use the actual_budgets field as defined in the database
+    console.log('Updated actual budgets:', updatedActualBudgets);
+    
+    // Update in Supabase
     const { error: updateError } = await supabase
       .from('campaigns')
       .update({
-        // Instead of using actual_budgets directly, we add it to what mapToSupabaseCampaign returns
-        // This avoids the TypeScript error since we're not trying to add it to a type that doesn't include it
-        // We'll update the supabaseUtils.ts file to handle this properly
-        weekly_budgets: campaign.weeklyBudgets,
         actual_budgets: updatedActualBudgets
       })
       .eq('id', campaignId);
     
     if (updateError) {
+      console.error('Error updating actual budget:', updateError);
       return supabaseService.handleError(updateError, 'Erreur lors de la mise à jour du budget réel');
     }
     
     console.log(`Actual budget updated for campaign ${campaignId}, week ${weekLabel}: ${amount}`);
+    return Promise.resolve();
   } catch (error) {
     console.error('Error updating actual budget:', error);
     toast.error(`Erreur lors de la mise à jour du budget réel: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);

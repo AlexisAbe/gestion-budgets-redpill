@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/budgetUtils';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
+import { updateActualBudgetService } from '@/store/services/campaign/updateCampaignService';
+import { useCampaignStore } from '@/store/campaignStore';
 
 interface ActualBudgetInputProps {
   campaignId: string;
@@ -13,6 +14,7 @@ interface ActualBudgetInputProps {
 }
 
 export function ActualBudgetInput({ campaignId, weekLabel, plannedBudget }: ActualBudgetInputProps) {
+  const { campaigns, fetchCampaigns } = useCampaignStore();
   const [actualBudget, setActualBudget] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -22,78 +24,22 @@ export function ActualBudgetInput({ campaignId, weekLabel, plannedBudget }: Actu
   const variance = actualBudget !== null ? actualBudget - plannedBudget : 0;
   const hasVariance = actualBudget !== null && variance !== 0;
   
-  // Get actual budget from the database
+  // Get actual budget from campaign data
   useEffect(() => {
-    async function fetchActualBudget() {
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('actual_budgets')
-          .select('amount')
-          .eq('campaign_id', campaignId)
-          .eq('week_label', weekLabel)
-          .single();
-        
-        if (error) {
-          if (error.code !== 'PGRST116') { // No rows found
-            console.error('Error fetching actual budget:', error);
-          }
-          return;
-        }
-        
-        if (data) {
-          setActualBudget(data.amount);
-          setInputValue(data.amount.toString());
-        }
-      } catch (error) {
-        console.error('Error fetching actual budget:', error);
-      } finally {
-        setIsLoading(false);
-      }
+    const campaign = campaigns.find(c => c.id === campaignId);
+    if (campaign && campaign.actualBudgets && campaign.actualBudgets[weekLabel] !== undefined) {
+      setActualBudget(campaign.actualBudgets[weekLabel]);
+      setInputValue(campaign.actualBudgets[weekLabel].toString());
     }
-    
-    fetchActualBudget();
-  }, [campaignId, weekLabel]);
+  }, [campaignId, weekLabel, campaigns]);
   
   // Update actual budget
   const updateActualBudget = async (value: number) => {
     setIsLoading(true);
     try {
-      // Check if we already have an entry for this campaign and week
-      const { data, error: checkError } = await supabase
-        .from('actual_budgets')
-        .select('id')
-        .eq('campaign_id', campaignId)
-        .eq('week_label', weekLabel)
-        .single();
-      
-      let error;
-      
-      if (checkError && checkError.code === 'PGRST116') {
-        // No entry found, create a new one
-        const { error: insertError } = await supabase
-          .from('actual_budgets')
-          .insert({
-            campaign_id: campaignId,
-            week_label: weekLabel,
-            amount: value
-          });
-        error = insertError;
-      } else {
-        // Entry found, update it
-        const { error: updateError } = await supabase
-          .from('actual_budgets')
-          .update({ amount: value })
-          .eq('campaign_id', campaignId)
-          .eq('week_label', weekLabel);
-        error = updateError;
-      }
-      
-      if (error) {
-        throw error;
-      }
-      
+      await updateActualBudgetService(campaignId, weekLabel, value);
       setActualBudget(value);
+      await fetchCampaigns(); // Refresh campaigns list to get updated data
       toast.success(`Budget réel mis à jour: ${formatCurrency(value)}`);
     } catch (error) {
       console.error('Error updating actual budget:', error);

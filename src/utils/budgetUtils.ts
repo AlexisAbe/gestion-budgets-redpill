@@ -200,7 +200,9 @@ export function calculateTotalBudget(campaign: { weeklyBudgets: Record<string, n
  * Calculate the total actual budget spent
  */
 export function calculateTotalActualBudget(campaign: { actualBudgets?: Record<string, number> }): number {
-  if (!campaign.actualBudgets) return 0;
+  if (!campaign.actualBudgets || Object.keys(campaign.actualBudgets).length === 0) {
+    return 0;
+  }
   return Object.values(campaign.actualBudgets).reduce((sum, amount) => sum + amount, 0);
 }
 

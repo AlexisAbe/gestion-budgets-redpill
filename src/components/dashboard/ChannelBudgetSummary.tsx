@@ -35,6 +35,13 @@ export function ChannelBudgetSummary({ campaigns }: ChannelBudgetSummaryProps) {
     };
   });
 
+  // Debug logging to verify actual budget calculation
+  console.log('Channel summaries with actual budgets:', channelSummaries);
+  
+  // Create total summary
+  const totalPlanned = channelSummaries.reduce((sum, summary) => sum + summary.plannedBudget, 0);
+  const totalActual = channelSummaries.reduce((sum, summary) => sum + summary.actualBudget, 0);
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -83,17 +90,10 @@ export function ChannelBudgetSummary({ campaigns }: ChannelBudgetSummaryProps) {
               {/* Total row */}
               <div className="grid grid-cols-4 gap-2 py-2 text-sm font-semibold border-t mt-2 pt-2">
                 <div>Total</div>
+                <div>{totalPlanned.toLocaleString('fr-FR')} €</div>
+                <div>{totalActual.toLocaleString('fr-FR')} €</div>
                 <div>
-                  {channelSummaries.reduce((sum, summary) => sum + summary.plannedBudget, 0).toLocaleString('fr-FR')} €
-                </div>
-                <div>
-                  {channelSummaries.reduce((sum, summary) => sum + summary.actualBudget, 0).toLocaleString('fr-FR')} €
-                </div>
-                <div>
-                  {calculatePercentage(
-                    channelSummaries.reduce((sum, summary) => sum + summary.actualBudget, 0),
-                    channelSummaries.reduce((sum, summary) => sum + summary.plannedBudget, 0)
-                  )}%
+                  {calculatePercentage(totalActual, totalPlanned)}%
                 </div>
               </div>
             </>
