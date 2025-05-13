@@ -5,6 +5,12 @@ project_id = "wmclujwtwuzscfqbzfxf"
 enable_confirmations = false
 enable_passwordless = true
 
-# Disable RLS enforcement for campaigns table to allow any user to perform operations
-[auth.policies]
-disable_rls_for_campaigns = true
+# Disable Row Level Security (RLS) for the campaigns table
+[postgres_config]
+anon_role = "anon"
+
+# This explicitly disables RLS for the campaigns table by name
+[[postgres_config.tables]]
+name = "campaigns"
+rls_enabled = false
+

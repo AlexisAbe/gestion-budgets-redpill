@@ -1,12 +1,14 @@
+
 import { create } from 'zustand';
 import { Campaign, MediaChannel, MarketingObjective } from '../types/campaign';
-import { generateWeeksForYear, WeeklyView } from '../utils/dateUtils';
-import { isBudgetBalanced, distributeEvenlyAcrossWeeks } from '../utils/budgetUtils';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { mapToCampaign, mapToSupabaseCampaign } from '@/utils/supabaseUtils';
-import { v4 as uuidv4 } from 'uuid';
-import { useAuth } from '@/context/AuthContext';
+import { WeeklyView, generateWeeksForYear } from '../utils/dateUtils';
+import { fetchCampaignsService } from './services/campaignServices';
+import { addCampaignService } from './services/campaignServices';
+import { updateCampaignService } from './services/campaignServices';
+import { deleteCampaignService } from './services/campaignServices';
+import { updateWeeklyBudgetService } from './services/campaignServices';
+import { autoDistributeBudgetService } from './services/campaignServices';
+import { resetStoreService } from './services/campaignServices';
 
 const YEAR = 2025;
 
@@ -30,22 +32,11 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   
   fetchCampaigns: async () => {
     set({ isLoading: true });
-    
     try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      // Map database response to our frontend Campaign type
-      const campaigns = (data || []).map(item => mapToCampaign(item));
+      const campaigns = await fetchCampaignsService();
       set({ campaigns });
-      console.log('Campaigns fetched from Supabase:', campaigns);
     } catch (error) {
       console.error('Error fetching campaigns:', error);
-      toast.error('Erreur lors de la récupération des campagnes');
     } finally {
       set({ isLoading: false });
     }
@@ -53,64 +44,12 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   
   addCampaign: async (campaignData) => {
     set({ isLoading: true });
-    
     try {
-      // Auto-distribute budget evenly if no weekly budgets provided
-      if (Object.keys(campaignData.weeklyBudgets).length === 0) {
-        campaignData.weeklyBudgets = distributeEvenlyAcrossWeeks(
-          { ...campaignData, id: '', createdAt: '', updatedAt: '' } as Campaign,
-          get().weeks
-        );
-      }
-      
-      // Get the current user from localStorage
-      const storedUser = localStorage.getItem('selectedUser');
-      let userId = null;
-      
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        // Generate a valid UUID if the ID is not already in UUID format
-        // This ensures compatibility with Supabase's UUID expectations
-        userId = user.id.length === 36 ? user.id : uuidv4();
-      }
-      
-      // Convert to snake_case for Supabase
-      const supabaseCampaignData = mapToSupabaseCampaign(campaignData);
-      
-      // Add the created_by field with a valid UUID
-      const dataWithUser = {
-        ...supabaseCampaignData,
-        created_by: userId
-      };
-      
-      const { data, error } = await supabase
-        .from('campaigns')
-        .insert(dataWithUser)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      // Convert from snake_case to our frontend type
-      const newCampaign = mapToCampaign(data);
-      
-      set(state => ({ campaigns: [newCampaign, ...state.campaigns] }));
-      
-      console.log(`Campaign "${newCampaign.name}" added`, newCampaign);
-      
-      // Check if budget is balanced
-      const balanced = isBudgetBalanced(newCampaign);
-      
-      if (!balanced) {
-        toast.warning(`La campagne "${newCampaign.name}" a un budget non alloué. Veuillez vérifier les allocations hebdomadaires.`);
-      } else {
-        toast.success(`Campagne "${newCampaign.name}" ajoutée avec succès`);
-      }
-      
-      return newCampaign.id;
+      const newCampaignId = await addCampaignService(campaignData, get().weeks);
+      await get().fetchCampaigns(); // Refresh campaigns list
+      return newCampaignId;
     } catch (error) {
       console.error('Error adding campaign:', error);
-      toast.error('Erreur lors de l\'ajout de la campagne');
       throw error;
     } finally {
       set({ isLoading: false });
@@ -119,57 +58,10 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   
   updateCampaign: async (id, data) => {
     try {
-      // Convert to snake_case for Supabase
-      const updateData: Record<string, any> = {};
-      
-      if ('mediaChannel' in data) updateData.media_channel = data.mediaChannel;
-      if ('name' in data) updateData.name = data.name;
-      if ('objective' in data) updateData.objective = data.objective;
-      if ('targetAudience' in data) updateData.target_audience = data.targetAudience;
-      if ('startDate' in data) updateData.start_date = data.startDate;
-      if ('totalBudget' in data) updateData.total_budget = data.totalBudget;
-      if ('durationDays' in data) updateData.duration_days = data.durationDays;
-      if ('weeklyBudgets' in data) updateData.weekly_budgets = data.weeklyBudgets;
-      
-      const { error } = await supabase
-        .from('campaigns')
-        .update(updateData)
-        .eq('id', id);
-      
-      if (error) throw error;
-      
-      set(state => {
-        const campaignIndex = state.campaigns.findIndex(c => c.id === id);
-        
-        if (campaignIndex === -1) {
-          console.error(`Campaign with ID ${id} not found`);
-          return state;
-        }
-        
-        const updatedCampaign = {
-          ...state.campaigns[campaignIndex],
-          ...data,
-        };
-        
-        const newCampaigns = [...state.campaigns];
-        newCampaigns[campaignIndex] = updatedCampaign;
-        
-        console.log(`Campaign "${updatedCampaign.name}" updated:`, data);
-        
-        // Check if budget is balanced after update
-        if ('totalBudget' in data || 'weeklyBudgets' in data) {
-          const balanced = isBudgetBalanced(updatedCampaign);
-          
-          if (!balanced) {
-            toast.warning(`La campagne "${updatedCampaign.name}" a un budget non alloué. Veuillez vérifier les allocations hebdomadaires.`);
-          }
-        }
-        
-        return { campaigns: newCampaigns };
-      });
+      await updateCampaignService(id, data, get().campaigns);
+      await get().fetchCampaigns(); // Refresh campaigns list
     } catch (error) {
       console.error('Error updating campaign:', error);
-      toast.error('Erreur lors de la mise à jour de la campagne');
     }
   },
   
@@ -178,139 +70,40 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
       const campaignToDelete = get().campaigns.find(c => c.id === id);
       if (!campaignToDelete) return;
       
-      const { error } = await supabase
-        .from('campaigns')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-      
+      await deleteCampaignService(id, campaignToDelete.name);
       set(state => ({ campaigns: state.campaigns.filter(c => c.id !== id) }));
-      
-      console.log(`Campaign "${campaignToDelete.name}" deleted`);
-      toast.info(`Campagne "${campaignToDelete.name}" supprimée`);
     } catch (error) {
       console.error('Error deleting campaign:', error);
-      toast.error('Erreur lors de la suppression de la campagne');
     }
   },
   
   updateWeeklyBudget: async (campaignId, weekLabel, amount) => {
     try {
-      const campaignIndex = get().campaigns.findIndex(c => c.id === campaignId);
-      
-      if (campaignIndex === -1) {
-        console.error(`Campaign with ID ${campaignId} not found`);
-        return;
-      }
-      
-      const campaign = get().campaigns[campaignIndex];
-      const newWeeklyBudgets = { ...campaign.weeklyBudgets };
-      
-      // Update the budget for the specified week
-      newWeeklyBudgets[weekLabel] = amount;
-      
-      // Update in Supabase
-      const { error } = await supabase
-        .from('campaigns')
-        .update({ weekly_budgets: newWeeklyBudgets })
-        .eq('id', campaignId);
-      
-      if (error) throw error;
-      
-      // Update state
-      set(state => {
-        const updatedCampaign = {
-          ...campaign,
-          weeklyBudgets: newWeeklyBudgets,
-        };
-        
-        const newCampaigns = [...state.campaigns];
-        newCampaigns[campaignIndex] = updatedCampaign;
-        
-        console.log(`Weekly budget updated for campaign "${campaign.name}"`, {
-          week: weekLabel,
-          amount,
-          balanced: isBudgetBalanced(updatedCampaign)
-        });
-        
-        return { campaigns: newCampaigns };
-      });
+      await updateWeeklyBudgetService(campaignId, weekLabel, amount, get().campaigns);
+      await get().fetchCampaigns(); // Refresh campaigns list
     } catch (error) {
       console.error('Error updating weekly budget:', error);
-      toast.error('Erreur lors de la mise à jour du budget hebdomadaire');
     }
   },
   
   autoDistributeBudget: async (campaignId, method) => {
-    const { campaigns, weeks } = get();
-    const campaign = campaigns.find(c => c.id === campaignId);
-    
-    if (!campaign) {
-      console.error(`Campaign with ID ${campaignId} not found`);
-      return;
-    }
-    
-    let newWeeklyBudgets: Record<string, number> = {};
-    
-    // Distribute based on selected method
-    if (method === 'even') {
-      newWeeklyBudgets = distributeEvenlyAcrossWeeks(campaign, weeks);
-    } else {
-      const { distributeByCurve } = require('../utils/budgetUtils');
-      newWeeklyBudgets = distributeByCurve(campaign, weeks, method);
-    }
-    
-    // Update in Supabase
     try {
-      const { error } = await supabase
-        .from('campaigns')
-        .update({ weekly_budgets: newWeeklyBudgets })
-        .eq('id', campaignId);
-      
-      if (error) throw error;
-      
-      // Update the campaign
-      set(state => {
-        const campaignIndex = state.campaigns.findIndex(c => c.id === campaignId);
-        const updatedCampaign = {
-          ...campaign,
-          weeklyBudgets: newWeeklyBudgets,
-        };
-        
-        const newCampaigns = [...state.campaigns];
-        newCampaigns[campaignIndex] = updatedCampaign;
-        
-        console.log(`Budget auto-distributed for campaign "${campaign.name}" using ${method} method`);
-        toast.success(`Le budget pour "${campaign.name}" a été automatiquement distribué`);
-        
-        return { campaigns: newCampaigns };
-      });
+      await autoDistributeBudgetService(campaignId, method, get().campaigns, get().weeks);
+      await get().fetchCampaigns(); // Refresh campaigns list
     } catch (error) {
       console.error('Error auto-distributing budget:', error);
-      toast.error('Erreur lors de la distribution automatique du budget');
     }
   },
   
   resetStore: async () => {
     try {
-      const { error } = await supabase
-        .from('campaigns')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all campaigns
-      
-      if (error) throw error;
-      
+      await resetStoreService();
       set({
         campaigns: [],
         weeks: generateWeeksForYear(YEAR)
       });
-      
-      console.log("Store reset to initial state");
-      toast.info("Toutes les données des campagnes ont été réinitialisées");
     } catch (error) {
       console.error('Error resetting store:', error);
-      toast.error('Erreur lors de la réinitialisation des données');
     }
   }
 }));
@@ -371,6 +164,5 @@ export async function addExampleCampaigns() {
     console.log("Example campaigns added to Supabase");
   } catch (error) {
     console.error("Error adding example campaigns:", error);
-    toast.error("Erreur lors de l'ajout des campagnes d'exemple");
   }
 }
