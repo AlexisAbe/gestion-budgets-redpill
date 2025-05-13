@@ -13,7 +13,6 @@ const Auth = () => {
   const { user, signIn, signUp } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +27,7 @@ const Auth = () => {
     setIsLoading(true);
     
     try {
-      await signIn(email, password);
+      await signIn(email);
     } catch (err) {
       // Error is handled in the auth context
     } finally {
@@ -45,13 +44,12 @@ const Auth = () => {
     try {
       const schema = z.object({
         email: z.string().email("Email invalide"),
-        password: z.string().min(6, "Mot de passe trop court - minimum 6 caractères"),
         fullName: z.string().min(2, "Nom complet requis")
       });
       
-      schema.parse({ email, password, fullName });
+      schema.parse({ email, fullName });
       
-      await signUp(email, password, fullName);
+      await signUp(email, fullName);
     } catch (err: any) {
       if (err instanceof z.ZodError) {
         setError(err.errors[0].message);
@@ -91,21 +89,14 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}
+                <p className="text-sm text-muted-foreground">
+                  Un lien de connexion vous sera envoyé par email
+                </p>
               </CardContent>
               <CardFooter>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Connexion..." : "Connexion"}
+                  {isLoading ? "Envoi du lien..." : "Connexion"}
                 </Button>
               </CardFooter>
             </form>
@@ -134,21 +125,14 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}
+                <p className="text-sm text-muted-foreground">
+                  Un lien de connexion vous sera envoyé par email
+                </p>
               </CardContent>
               <CardFooter>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Inscription..." : "Inscription"}
+                  {isLoading ? "Envoi du lien..." : "Inscription"}
                 </Button>
               </CardFooter>
             </form>

@@ -9,8 +9,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  signIn: (email: string) => Promise<void>;
+  signUp: (email: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -51,38 +51,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithOtp({ 
+        email,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: window.location.origin,
+        }
+      });
+      
       if (error) {
         toast.error(error.message);
         throw error;
       }
-      toast.success("Connexion réussie");
-      navigate('/');
+      
+      toast.success("Un lien de connexion a été envoyé à votre email");
     } catch (error) {
       console.error('Sign in error:', error);
       throw error;
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, fullName: string) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signInWithOtp({
         email,
-        password,
         options: {
+          shouldCreateUser: true,
           data: {
             full_name: fullName,
           },
-        },
+          emailRedirectTo: window.location.origin,
+        }
       });
+      
       if (error) {
         toast.error(error.message);
         throw error;
       }
-      toast.success("Inscription réussie! Veuillez vous connecter.");
-      navigate('/auth');
+      
+      toast.success("Un lien de connexion a été envoyé à votre email");
     } catch (error) {
       console.error('Sign up error:', error);
       throw error;
