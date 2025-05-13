@@ -1,15 +1,18 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useCampaignStore } from '@/store/campaignStore';
 import { CampaignRow } from './CampaignRow';
 import { BudgetChart } from '../charts/BudgetChart';
 import { AddCampaignForm } from './AddCampaignForm';
 import { ExportTools } from '../export/ExportTools';
+import { ChannelFilter } from '../filters/ChannelFilter';
+import { MediaChannel } from '@/types/campaign';
 
 export function CampaignTable() {
   const { campaigns, weeks } = useCampaignStore();
   const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({});
   const [inlineAdSets, setInlineAdSets] = useState<Record<string, boolean>>({});
+  const [selectedChannels, setSelectedChannels] = useState<MediaChannel[]>([]);
   
   const toggleChart = (campaignId: string) => {
     setExpandedCampaigns(prev => ({
@@ -25,12 +28,25 @@ export function CampaignTable() {
     }));
   };
 
+  // Filter campaigns by selected channels
+  const filteredCampaigns = useMemo(() => {
+    if (selectedChannels.length === 0) {
+      // If no channels are selected, show all campaigns
+      return campaigns;
+    }
+    return campaigns.filter(campaign => selectedChannels.includes(campaign.mediaChannel));
+  }, [campaigns, selectedChannels]);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Campaigns</h2>
         <div className="flex items-center gap-2">
-          <ExportTools campaigns={campaigns} weeks={weeks} />
+          <ChannelFilter 
+            selectedChannels={selectedChannels}
+            onChange={setSelectedChannels}
+          />
+          <ExportTools campaigns={filteredCampaigns} weeks={weeks} />
           <AddCampaignForm />
         </div>
       </div>
@@ -59,14 +75,16 @@ export function CampaignTable() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-card text-foreground">
-                {campaigns.length === 0 && (
+                {filteredCampaigns.length === 0 && (
                   <tr>
                     <td colSpan={8 + weeks.length} className="p-8 text-center text-muted-foreground">
-                      No campaigns yet. Add a campaign to get started.
+                      {campaigns.length === 0 
+                        ? "No campaigns yet. Add a campaign to get started."
+                        : "No campaigns match your selected filters."}
                     </td>
                   </tr>
                 )}
-                {campaigns.map(campaign => (
+                {filteredCampaigns.map(campaign => (
                   <React.Fragment key={campaign.id}>
                     <CampaignRow 
                       campaign={campaign} 
