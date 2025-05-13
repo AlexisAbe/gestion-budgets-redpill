@@ -1,6 +1,7 @@
 
 import { Campaign, MediaChannel, MarketingObjective } from "@/types/campaign";
 import { Json } from "@/integrations/supabase/types";
+import { v4 as uuidv4 } from 'uuid';
 
 type SupabaseCampaign = {
   id: string;
@@ -47,7 +48,7 @@ export function mapToSupabaseCampaign(campaign: Omit<Campaign, "id" | "createdAt
 }
 
 // Helper function to validate/generate UUID
-export function getValidUUID(possibleUUID: string | null | undefined): string | null {
+export function getValidUUID(possibleUUID: string | null | undefined): string {
   // Check if it's already a valid UUID format
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   
@@ -55,6 +56,6 @@ export function getValidUUID(possibleUUID: string | null | undefined): string | 
     return possibleUUID;
   }
   
-  // Return null if invalid and no generation is needed
-  return null;
+  // Generate a new UUID if invalid
+  return uuidv4();
 }

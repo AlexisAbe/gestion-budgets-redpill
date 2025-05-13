@@ -5,11 +5,19 @@ project_id = "wmclujwtwuzscfqbzfxf"
 enable_confirmations = false
 enable_passwordless = true
 
-# Disable Row Level Security (RLS) for the campaigns table
+# Disable Row Level Security (RLS) globally for this project
 [postgres_config]
 anon_role = "anon"
 
-# This explicitly disables RLS for the campaigns table by name
+# Explicitly disable RLS for specific tables
 [[postgres_config.tables]]
 name = "campaigns"
+rls_enabled = false
+
+[[postgres_config.tables]]
+name = "actual_budgets"
+rls_enabled = false
+
+[[postgres_config.tables]]
+name = "profiles"
 rls_enabled = false

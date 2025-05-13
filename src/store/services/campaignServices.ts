@@ -1,3 +1,4 @@
+
 import { Campaign } from '@/types/campaign';
 import { WeeklyView } from '@/utils/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +15,10 @@ export async function fetchCampaignsService(): Promise<Campaign[]> {
       .select('*')
       .order('created_at', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase fetch error:', error);
+      throw error;
+    }
     
     // Map database response to our frontend Campaign type
     const campaigns = (data || []).map(item => mapToCampaign(item));
@@ -47,11 +51,13 @@ export async function addCampaignService(
     // Convert to snake_case for Supabase
     const supabaseCampaignData = mapToSupabaseCampaign(campaignData);
     
-    // Remove the user dependency
+    // Add the id to the data
     const dataWithId = {
       ...supabaseCampaignData,
       id: campaignId
     };
+    
+    console.log('Attempting to insert campaign with data:', dataWithId);
     
     const { data, error } = await supabase
       .from('campaigns')
@@ -105,12 +111,17 @@ export async function updateCampaignService(
     if ('durationDays' in data) updateData.duration_days = data.durationDays;
     if ('weeklyBudgets' in data) updateData.weekly_budgets = data.weeklyBudgets;
     
+    console.log('Attempting to update campaign with ID:', id, 'and data:', updateData);
+    
     const { error } = await supabase
       .from('campaigns')
       .update(updateData)
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase update error:', error);
+      throw error;
+    }
     
     const campaignIndex = campaigns.findIndex(c => c.id === id);
     
@@ -144,12 +155,17 @@ export async function updateCampaignService(
 // Delete a campaign
 export async function deleteCampaignService(id: string, campaignName: string): Promise<void> {
   try {
+    console.log('Attempting to delete campaign with ID:', id);
+    
     const { error } = await supabase
       .from('campaigns')
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase delete error:', error);
+      throw error;
+    }
     
     console.log(`Campaign "${campaignName}" deleted`);
     toast.info(`Campagne "${campaignName}" supprimée`);
@@ -181,13 +197,18 @@ export async function updateWeeklyBudgetService(
     // Update the budget for the specified week
     newWeeklyBudgets[weekLabel] = amount;
     
+    console.log('Updating weekly budget for campaign ID:', campaignId, 'week:', weekLabel, 'amount:', amount);
+    
     // Update in Supabase
     const { error } = await supabase
       .from('campaigns')
       .update({ weekly_budgets: newWeeklyBudgets })
       .eq('id', campaignId);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase update error:', error);
+      throw error;
+    }
     
     const updatedCampaign = {
       ...campaign,
@@ -231,13 +252,18 @@ export async function autoDistributeBudgetService(
       newWeeklyBudgets = distributeByCurve(campaign, weeks, method);
     }
     
+    console.log('Auto-distributing budget for campaign ID:', campaignId, 'using method:', method);
+    
     // Update in Supabase
     const { error } = await supabase
       .from('campaigns')
       .update({ weekly_budgets: newWeeklyBudgets })
       .eq('id', campaignId);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase update error:', error);
+      throw error;
+    }
     
     console.log(`Budget auto-distributed for campaign "${campaign.name}" using ${method} method`);
     toast.success(`Le budget pour "${campaign.name}" a été automatiquement distribué`);
@@ -251,12 +277,17 @@ export async function autoDistributeBudgetService(
 // Reset the store
 export async function resetStoreService(): Promise<void> {
   try {
+    console.log('Attempting to reset store by deleting all campaigns');
+    
     const { error } = await supabase
       .from('campaigns')
       .delete()
       .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all campaigns
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase delete error:', error);
+      throw error;
+    }
     
     console.log("Store reset to initial state");
     toast.info("Toutes les données des campagnes ont été réinitialisées");

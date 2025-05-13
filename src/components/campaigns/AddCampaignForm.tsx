@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,8 @@ import { useCampaignStore } from '@/store/campaignStore';
 import { MediaChannel, MarketingObjective } from '@/types/campaign';
 import { formatCurrency } from '@/utils/budgetUtils';
 import { toast } from 'sonner';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export function AddCampaignForm() {
   const { addCampaign, isLoading } = useCampaignStore();
@@ -25,6 +26,7 @@ export function AddCampaignForm() {
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleInputChange = (field: string, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -36,6 +38,11 @@ export function AddCampaignForm() {
         delete newErrors[field];
         return newErrors;
       });
+    }
+    
+    // Clear general error message
+    if (errorMessage) {
+      setErrorMessage(null);
     }
   };
 
@@ -73,16 +80,23 @@ export function AddCampaignForm() {
     }
 
     setIsSubmitting(true);
+    setErrorMessage(null);
     
     try {
+      console.log('Submitting campaign:', formData);
+      
       // Create initial weekly budgets - evenly distribute the total
-      const weeklyAmount = Math.floor(formData.totalBudget / 5);
+      // Using a simpler approach to avoid calculation errors
+      const numWeeks = 5;
+      const weeklyAmount = Math.floor(formData.totalBudget / numWeeks);
+      const remainder = formData.totalBudget - (weeklyAmount * (numWeeks - 1));
+      
       const weeklyBudgets = {
         "S19": weeklyAmount,
         "S20": weeklyAmount,
         "S21": weeklyAmount,
         "S22": weeklyAmount,
-        "S23": formData.totalBudget - (weeklyAmount * 4) // Remainder to last week
+        "S23": remainder // Remainder to last week
       };
 
       await addCampaign({
@@ -103,8 +117,9 @@ export function AddCampaignForm() {
       
       toast.success('Campagne créée avec succès');
       setOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Submit error:', error);
+      setErrorMessage(error.message || 'Erreur lors de l\'ajout de la campagne');
       toast.error('Erreur lors de l\'ajout de la campagne');
     } finally {
       setIsSubmitting(false);
@@ -115,6 +130,12 @@ export function AddCampaignForm() {
     <Dialog open={open} onOpenChange={(newOpen) => {
       if (isSubmitting) return; // Prevent closing while submitting
       setOpen(newOpen);
+      
+      // Reset error state when dialog is opened/closed
+      if (!newOpen) {
+        setFormErrors({});
+        setErrorMessage(null);
+      }
     }}>
       <DialogTrigger asChild>
         <Button className="flex gap-2">
@@ -125,7 +146,16 @@ export function AddCampaignForm() {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Add New Campaign</DialogTitle>
+          <DialogDescription>Create a new marketing campaign with budget allocation</DialogDescription>
         </DialogHeader>
+        
+        {errorMessage && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
+        
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
