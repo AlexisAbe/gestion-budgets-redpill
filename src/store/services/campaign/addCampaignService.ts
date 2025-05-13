@@ -19,12 +19,22 @@ export async function addCampaignService(
     // Auto-distribute budget evenly if no weekly budgets provided
     if (Object.keys(campaignData.weeklyBudgets).length === 0) {
       console.log('No weekly budgets provided, auto-distributing...');
-      const { data: weeksData } = await supabase.from('weeks').select('*').order('week_number');
-      const weeks = weeksData || [];
+      
+      // Instead of querying a weeks table, we'll create a set of default weeks
+      // This is a temporary solution - ideally the weeks data should come from a proper source
+      const defaultWeeks: WeeklyView[] = Array.from({ length: 4 }, (_, i) => {
+        const weekNumber = i + 1;
+        return {
+          weekNumber,
+          weekLabel: `W${weekNumber}`,
+          startDate: new Date(new Date().setDate(new Date().getDate() + i * 7)).toISOString(),
+          endDate: new Date(new Date().setDate(new Date().getDate() + (i + 1) * 7 - 1)).toISOString()
+        };
+      });
       
       campaignData.weeklyBudgets = distributeEvenlyAcrossWeeks(
         { ...campaignData, id: '', createdAt: '', updatedAt: '' } as Campaign,
-        weeks as unknown as WeeklyView[]
+        defaultWeeks
       );
     }
     

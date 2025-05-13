@@ -1,6 +1,6 @@
 
 import { Campaign } from '@/types/campaign';
-import { CampaignState } from '../types/campaignStoreTypes';
+import { CampaignState, initialCampaignState } from '../types/campaignStoreTypes';
 import { 
   fetchCampaignsService, 
   addCampaignService, 
