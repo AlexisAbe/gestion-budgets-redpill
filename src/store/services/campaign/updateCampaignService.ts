@@ -3,7 +3,7 @@ import { Campaign } from '@/types/campaign';
 import { supabase } from '@/integrations/supabase/client';
 import { formatSupabaseError } from '@/utils/supabaseUtils';
 import { isBudgetBalanced } from '@/utils/budgetUtils';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { supabaseService } from '../base/supabaseService';
 
 // Update an existing campaign
@@ -55,12 +55,20 @@ export async function updateCampaignService(
       const balanced = isBudgetBalanced(updatedCampaign);
       
       if (!balanced) {
-        toast.warning(`La campagne "${updatedCampaign.name}" a un budget non alloué. Veuillez vérifier les allocations hebdomadaires.`);
+        toast({
+          title: "Attention",
+          description: `La campagne "${updatedCampaign.name}" a un budget non alloué. Veuillez vérifier les allocations hebdomadaires.`,
+          variant: "warning"
+        });
       }
     }
   } catch (error) {
     console.error('Error updating campaign:', error);
-    toast.error(`Erreur lors de la mise à jour de la campagne: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    toast({
+      title: "Erreur",
+      description: `Erreur lors de la mise à jour de la campagne: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+      variant: "destructive"
+    });
     throw error;
   }
 }

@@ -7,10 +7,13 @@ import { BudgetDistributionModal } from '@/components/ui/BudgetDistributionModal
 import { Button } from '@/components/ui/button';
 import { formatCurrency, isBudgetBalanced, getUnallocatedBudget } from '@/utils/budgetUtils';
 import { formatDate } from '@/utils/dateUtils';
-import { AlertCircle, Check, Sliders, BarChartIcon } from 'lucide-react';
+import { AlertCircle, Check, Sliders, BarChartIcon, Pencil, Save } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { ActualBudgetInput } from './ActualBudgetInput';
+import { Input } from '@/components/ui/input';
+import { useCampaignStore } from '@/store/campaignStore';
+import { toast } from '@/hooks/use-toast';
 
 interface CampaignRowProps {
   campaign: Campaign;
@@ -20,8 +23,43 @@ interface CampaignRowProps {
 }
 
 export function CampaignRow({ campaign, weeks, onToggleChart, showChart }: CampaignRowProps) {
+  const { updateCampaign } = useCampaignStore();
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [campaignName, setCampaignName] = useState(campaign.name);
   const isBalanced = isBudgetBalanced(campaign);
   const unallocatedBudget = getUnallocatedBudget(campaign);
+  
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCampaignName(e.target.value);
+  };
+
+  const handleSaveName = async () => {
+    if (campaignName.trim() === '') {
+      toast({
+        title: "Erreur",
+        description: "Le nom de la campagne ne peut pas être vide",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await updateCampaign(campaign.id, { name: campaignName });
+      setIsEditingName(false);
+      toast({
+        title: "Succès",
+        description: "Nom de la campagne mis à jour",
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('Error updating campaign name:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la mise à jour du nom de la campagne",
+        variant: "destructive"
+      });
+    }
+  };
   
   return (
     <>
@@ -34,7 +72,37 @@ export function CampaignRow({ campaign, weeks, onToggleChart, showChart }: Campa
         </td>
         <td className="fixed-column-cell font-medium">
           <div className="flex items-center gap-2">
-            <span>{campaign.name}</span>
+            {isEditingName ? (
+              <div className="flex items-center gap-1">
+                <Input
+                  value={campaignName}
+                  onChange={handleNameChange}
+                  className="h-8 w-full max-w-[200px]"
+                  autoFocus
+                />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleSaveName} 
+                  className="h-8 w-8 p-0"
+                >
+                  <Save className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <span>{campaign.name}</span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsEditingName(true)} 
+                  className="h-6 w-6 p-0"
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </>
+            )}
+            
             {!isBalanced && (
               <Tooltip>
                 <TooltipTrigger>
