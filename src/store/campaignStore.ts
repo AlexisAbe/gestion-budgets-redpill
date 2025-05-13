@@ -85,7 +85,8 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   
   updateWeeklyBudget: async (campaignId, weekLabel, amount) => {
     try {
-      await updateWeeklyBudgetService(campaignId, weekLabel, amount);
+      // Pass the campaigns array as the 4th argument
+      await updateWeeklyBudgetService(campaignId, weekLabel, amount, get().campaigns);
       await get().fetchCampaigns(); // Refresh campaigns list
     } catch (error) {
       console.error('Error updating weekly budget:', error);

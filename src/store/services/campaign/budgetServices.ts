@@ -12,17 +12,30 @@ export async function updateWeeklyBudgetService(
   campaignId: string, 
   weekLabel: string, 
   amount: number,
-  campaigns: Campaign[]
+  campaigns?: Campaign[]
 ): Promise<void> {
   try {
-    const campaignIndex = campaigns.findIndex(c => c.id === campaignId);
-    
-    if (campaignIndex === -1) {
-      console.error(`Campaign with ID ${campaignId} not found`);
-      return;
+    // If campaigns array is provided, find the campaign from it
+    let campaign: Campaign | undefined;
+    if (campaigns && campaigns.length > 0) {
+      campaign = campaigns.find(c => c.id === campaignId);
     }
     
-    const campaign = campaigns[campaignIndex];
+    // If not found or campaigns not provided, get it from the database
+    if (!campaign) {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('id', campaignId)
+        .single();
+      
+      if (error) {
+        return supabaseService.handleError(error, 'Campaign not found');
+      }
+      
+      campaign = data as unknown as Campaign;
+    }
+    
     const newWeeklyBudgets = { ...campaign.weeklyBudgets };
     
     // Update the budget for the specified week
