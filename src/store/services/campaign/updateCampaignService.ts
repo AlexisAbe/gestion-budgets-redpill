@@ -1,3 +1,4 @@
+
 import { Campaign } from '@/types/campaign';
 import { supabase } from '@/integrations/supabase/client';
 import { mapToSupabaseCampaign, mapToCampaign } from '@/utils/supabaseUtils';
@@ -134,11 +135,19 @@ export async function updateActualBudgetService(
     
     console.log('Updated actual budgets:', updatedActualBudgets);
     
-    // Update in Supabase
+    // Store the actual budgets in the weekly_budgets field as a workaround
+    // This is a temporary solution until we update the database schema
+    // Use a special key prefix to distinguish actual budgets from planned budgets
+    const combinedWeeklyBudgets = {
+      ...campaign.weeklyBudgets,
+      __actual_budgets__: updatedActualBudgets
+    };
+    
+    // Update in Supabase using the weekly_budgets field which is known to exist in the type
     const { error: updateError } = await supabase
       .from('campaigns')
       .update({
-        actual_budgets: updatedActualBudgets
+        weekly_budgets: combinedWeeklyBudgets
       })
       .eq('id', campaignId);
     

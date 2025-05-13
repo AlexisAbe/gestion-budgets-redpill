@@ -1,4 +1,3 @@
-
 import { Campaign, MediaChannel, MarketingObjective, AdSet } from "@/types/campaign";
 import { Json } from "@/integrations/supabase/types";
 import { v4 as uuidv4 } from 'uuid';
@@ -13,7 +12,6 @@ type SupabaseCampaign = {
   total_budget: number;
   duration_days: number;
   weekly_budgets: Json;
-  actual_budgets?: Json;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -31,6 +29,35 @@ type SupabaseAdSet = {
 };
 
 export function mapToCampaign(supabaseCampaign: SupabaseCampaign): Campaign {
+  // Extract actual budgets from weekly_budgets if they exist
+  const weeklyBudgets = supabaseCampaign.weekly_budgets as Record<string, any>;
+  let actualBudgets: Record<string, number> = {};
+  
+  // Check if weekly_budgets contains the special key for actual budgets
+  if (weeklyBudgets && weeklyBudgets.__actual_budgets__) {
+    actualBudgets = weeklyBudgets.__actual_budgets__ as Record<string, number>;
+    
+    // Create a clean copy of weekly budgets without the actual budgets
+    const cleanWeeklyBudgets = {...weeklyBudgets};
+    delete cleanWeeklyBudgets.__actual_budgets__;
+    
+    return {
+      id: supabaseCampaign.id,
+      mediaChannel: supabaseCampaign.media_channel as MediaChannel,
+      name: supabaseCampaign.name,
+      objective: supabaseCampaign.objective as MarketingObjective,
+      targetAudience: supabaseCampaign.target_audience,
+      startDate: supabaseCampaign.start_date,
+      totalBudget: supabaseCampaign.total_budget,
+      durationDays: supabaseCampaign.duration_days,
+      weeklyBudgets: cleanWeeklyBudgets as Record<string, number>,
+      actualBudgets: actualBudgets,
+      createdAt: supabaseCampaign.created_at,
+      updatedAt: supabaseCampaign.updated_at
+    };
+  }
+  
+  // Regular mapping without special handling
   return {
     id: supabaseCampaign.id,
     mediaChannel: supabaseCampaign.media_channel as MediaChannel,
@@ -41,13 +68,20 @@ export function mapToCampaign(supabaseCampaign: SupabaseCampaign): Campaign {
     totalBudget: supabaseCampaign.total_budget,
     durationDays: supabaseCampaign.duration_days,
     weeklyBudgets: supabaseCampaign.weekly_budgets as Record<string, number>,
-    actualBudgets: supabaseCampaign.actual_budgets as Record<string, number> || {},
+    actualBudgets: {},
     createdAt: supabaseCampaign.created_at,
     updatedAt: supabaseCampaign.updated_at
   };
 }
 
 export function mapToSupabaseCampaign(campaign: Omit<Campaign, "id" | "createdAt" | "updatedAt">): Omit<SupabaseCampaign, "id" | "created_at" | "updated_at" | "created_by"> {
+  // If actualBudgets exists, include them in the weekly_budgets field
+  let weeklyBudgets: Record<string, any> = {...campaign.weeklyBudgets};
+  
+  if (campaign.actualBudgets && Object.keys(campaign.actualBudgets).length > 0) {
+    weeklyBudgets.__actual_budgets__ = campaign.actualBudgets;
+  }
+  
   return {
     media_channel: campaign.mediaChannel,
     name: campaign.name,
@@ -56,8 +90,7 @@ export function mapToSupabaseCampaign(campaign: Omit<Campaign, "id" | "createdAt
     start_date: campaign.startDate,
     total_budget: campaign.totalBudget,
     duration_days: campaign.durationDays,
-    weekly_budgets: campaign.weeklyBudgets,
-    actual_budgets: campaign.actualBudgets || {}
+    weekly_budgets: weeklyBudgets
   };
 }
 
