@@ -2,7 +2,7 @@
 import { Campaign } from '@/types/campaign';
 import { WeeklyView } from '@/utils/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { mapToCampaign, mapToSupabaseCampaign } from '@/utils/supabaseUtils';
+import { mapToCampaign, mapToSupabaseCampaign, formatSupabaseError } from '@/utils/supabaseUtils';
 import { isBudgetBalanced, distributeEvenlyAcrossWeeks } from '@/utils/budgetUtils';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,19 +10,22 @@ import { v4 as uuidv4 } from 'uuid';
 // Fetch all campaigns from the database
 export async function fetchCampaignsService(): Promise<Campaign[]> {
   try {
+    console.log('Fetching campaigns from Supabase...');
+    
     const { data, error } = await supabase
       .from('campaigns')
       .select('*')
       .order('created_at', { ascending: false });
     
     if (error) {
-      console.error('Supabase fetch error:', error);
-      throw error;
+      const errorMessage = formatSupabaseError(error);
+      console.error('Supabase fetch error:', error, errorMessage);
+      throw new Error(errorMessage);
     }
     
     // Map database response to our frontend Campaign type
     const campaigns = (data || []).map(item => mapToCampaign(item));
-    console.log('Campaigns fetched from Supabase:', campaigns);
+    console.log('Campaigns fetched from Supabase:', campaigns.length);
     return campaigns;
   } catch (error) {
     console.error('Error fetching campaigns:', error);
@@ -37,8 +40,11 @@ export async function addCampaignService(
   weeks: WeeklyView[]
 ): Promise<string> {
   try {
+    console.log('Starting campaign creation process...');
+    
     // Auto-distribute budget evenly if no weekly budgets provided
     if (Object.keys(campaignData.weeklyBudgets).length === 0) {
+      console.log('No weekly budgets provided, auto-distributing...');
       campaignData.weeklyBudgets = distributeEvenlyAcrossWeeks(
         { ...campaignData, id: '', createdAt: '', updatedAt: '' } as Campaign,
         weeks
@@ -54,10 +60,16 @@ export async function addCampaignService(
     // Add the id to the data
     const dataWithId = {
       ...supabaseCampaignData,
-      id: campaignId
+      id: campaignId,
+      // We're explicitly setting created_by to null to avoid any auth issues
+      created_by: null
     };
     
-    console.log('Attempting to insert campaign with data:', dataWithId);
+    console.log('Attempting to insert campaign with data:', {
+      name: dataWithId.name,
+      media_channel: dataWithId.media_channel,
+      id: campaignId
+    });
     
     const { data, error } = await supabase
       .from('campaigns')
@@ -66,14 +78,26 @@ export async function addCampaignService(
       .single();
     
     if (error) {
+      const errorMessage = formatSupabaseError(error);
       console.error('Supabase insert error:', error);
-      throw error;
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      throw new Error(errorMessage);
+    }
+    
+    if (!data) {
+      console.error('No data returned from insert operation');
+      throw new Error('Aucune donnée retournée lors de la création de la campagne');
     }
     
     // Convert from snake_case to our frontend type
     const newCampaign = mapToCampaign(data);
     
-    console.log(`Campaign "${newCampaign.name}" added successfully`, newCampaign);
+    console.log(`Campaign "${newCampaign.name}" added successfully with ID: ${newCampaign.id}`);
     
     // Check if budget is balanced
     const balanced = isBudgetBalanced(newCampaign);
@@ -87,7 +111,7 @@ export async function addCampaignService(
     return campaignId;
   } catch (error) {
     console.error('Error adding campaign:', error);
-    toast.error('Erreur lors de l\'ajout de la campagne');
+    toast.error(`Erreur lors de l'ajout de la campagne: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     throw error;
   }
 }
@@ -119,8 +143,15 @@ export async function updateCampaignService(
       .eq('id', id);
     
     if (error) {
+      const errorMessage = formatSupabaseError(error);
       console.error('Supabase update error:', error);
-      throw error;
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      throw new Error(errorMessage);
     }
     
     const campaignIndex = campaigns.findIndex(c => c.id === id);
@@ -147,7 +178,7 @@ export async function updateCampaignService(
     }
   } catch (error) {
     console.error('Error updating campaign:', error);
-    toast.error('Erreur lors de la mise à jour de la campagne');
+    toast.error(`Erreur lors de la mise à jour de la campagne: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     throw error;
   }
 }
@@ -163,15 +194,22 @@ export async function deleteCampaignService(id: string, campaignName: string): P
       .eq('id', id);
     
     if (error) {
+      const errorMessage = formatSupabaseError(error);
       console.error('Supabase delete error:', error);
-      throw error;
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      throw new Error(errorMessage);
     }
     
     console.log(`Campaign "${campaignName}" deleted`);
     toast.info(`Campagne "${campaignName}" supprimée`);
   } catch (error) {
     console.error('Error deleting campaign:', error);
-    toast.error('Erreur lors de la suppression de la campagne');
+    toast.error(`Erreur lors de la suppression de la campagne: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     throw error;
   }
 }
@@ -206,8 +244,15 @@ export async function updateWeeklyBudgetService(
       .eq('id', campaignId);
     
     if (error) {
+      const errorMessage = formatSupabaseError(error);
       console.error('Supabase update error:', error);
-      throw error;
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      throw new Error(errorMessage);
     }
     
     const updatedCampaign = {
@@ -222,7 +267,7 @@ export async function updateWeeklyBudgetService(
     });
   } catch (error) {
     console.error('Error updating weekly budget:', error);
-    toast.error('Erreur lors de la mise à jour du budget hebdomadaire');
+    toast.error(`Erreur lors de la mise à jour du budget hebdomadaire: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     throw error;
   }
 }
@@ -261,15 +306,22 @@ export async function autoDistributeBudgetService(
       .eq('id', campaignId);
     
     if (error) {
+      const errorMessage = formatSupabaseError(error);
       console.error('Supabase update error:', error);
-      throw error;
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      throw new Error(errorMessage);
     }
     
     console.log(`Budget auto-distributed for campaign "${campaign.name}" using ${method} method`);
     toast.success(`Le budget pour "${campaign.name}" a été automatiquement distribué`);
   } catch (error) {
     console.error('Error auto-distributing budget:', error);
-    toast.error('Erreur lors de la distribution automatique du budget');
+    toast.error(`Erreur lors de la distribution automatique du budget: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     throw error;
   }
 }
@@ -285,15 +337,22 @@ export async function resetStoreService(): Promise<void> {
       .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all campaigns
     
     if (error) {
+      const errorMessage = formatSupabaseError(error);
       console.error('Supabase delete error:', error);
-      throw error;
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      throw new Error(errorMessage);
     }
     
     console.log("Store reset to initial state");
     toast.info("Toutes les données des campagnes ont été réinitialisées");
   } catch (error) {
     console.error('Error resetting store:', error);
-    toast.error('Erreur lors de la réinitialisation des données');
+    toast.error(`Erreur lors de la réinitialisation des données: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     throw error;
   }
 }

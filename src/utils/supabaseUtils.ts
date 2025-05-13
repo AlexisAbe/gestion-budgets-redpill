@@ -59,3 +59,29 @@ export function getValidUUID(possibleUUID: string | null | undefined): string {
   // Generate a new UUID if invalid
   return uuidv4();
 }
+
+// Helper to format Supabase error messages for better user feedback
+export function formatSupabaseError(error: any): string {
+  if (!error) return 'Une erreur inconnue est survenue';
+  
+  // Check for common Supabase error patterns
+  if (error.code === 'PGRST301') {
+    return 'Erreur d\'authentification avec la base de données';
+  }
+  
+  if (error.message?.includes('JWT')) {
+    return 'Session expirée ou invalide';
+  }
+  
+  // PostgreSQL constraint violations
+  if (error.code === '23505') {
+    return 'Cette entrée existe déjà';
+  }
+  
+  if (error.code === '23503') {
+    return 'Référence invalide à une autre table';
+  }
+  
+  // Return the original message if we can't format it
+  return error.message || error.toString();
+}
