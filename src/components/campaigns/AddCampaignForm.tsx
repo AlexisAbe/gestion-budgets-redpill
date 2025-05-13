@@ -11,9 +11,10 @@ import { formatCurrency } from '@/utils/budgetUtils';
 import { toast } from 'sonner';
 import { PlusCircle, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getCampaignWeeks } from '@/utils/dateUtils';
 
 export function AddCampaignForm() {
-  const { addCampaign, isLoading } = useCampaignStore();
+  const { addCampaign, isLoading, weeks } = useCampaignStore();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     mediaChannel: 'META' as MediaChannel,
@@ -85,19 +86,25 @@ export function AddCampaignForm() {
     try {
       console.log('Submitting campaign:', formData);
       
-      // Create initial weekly budgets - evenly distribute the total
-      // Using a simpler approach to avoid calculation errors
-      const numWeeks = 5;
-      const weeklyAmount = Math.floor(formData.totalBudget / numWeeks);
-      const remainder = formData.totalBudget - (weeklyAmount * (numWeeks - 1));
+      // Get the campaign weeks based on start date and duration
+      const campaignWeekNumbers = getCampaignWeeks(formData.startDate, formData.durationDays, weeks);
       
-      const weeklyBudgets = {
-        "S19": weeklyAmount,
-        "S20": weeklyAmount,
-        "S21": weeklyAmount,
-        "S22": weeklyAmount,
-        "S23": remainder // Remainder to last week
-      };
+      // Create initial empty weekly budgets object
+      const weeklyBudgets: Record<string, number> = {};
+      
+      // Only if we have weeks for the campaign, distribute the budget evenly
+      if (campaignWeekNumbers.length > 0) {
+        const weeklyAmount = Math.floor(formData.totalBudget / campaignWeekNumbers.length);
+        const remainder = formData.totalBudget - (weeklyAmount * (campaignWeekNumbers.length - 1));
+        
+        // Distribute budget evenly except for the last week which gets the remainder
+        campaignWeekNumbers.forEach((weekNum, index) => {
+          const weekLabel = `S${weekNum}`;
+          weeklyBudgets[weekLabel] = (index === campaignWeekNumbers.length - 1) 
+            ? remainder 
+            : weeklyAmount;
+        });
+      }
 
       await addCampaign({
         ...formData,
