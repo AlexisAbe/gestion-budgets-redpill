@@ -100,6 +100,7 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          client_id: string | null
           created_at: string
           created_by: string | null
           duration_days: number
@@ -114,6 +115,7 @@ export type Database = {
           weekly_budgets: Json
         }
         Insert: {
+          client_id?: string | null
           created_at?: string
           created_by?: string | null
           duration_days: number
@@ -128,6 +130,7 @@ export type Database = {
           weekly_budgets?: Json
         }
         Update: {
+          client_id?: string | null
           created_at?: string
           created_by?: string | null
           duration_days?: number

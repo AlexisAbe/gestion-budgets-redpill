@@ -22,21 +22,18 @@ export const createCampaignMutationActions = (set: any, get: () => CampaignState
       const newCampaignId = await addCampaignService(campaignWithClient);
       
       if (newCampaignId) {
-        // Fetch the full campaign data to return a proper Campaign object
+        // Fetch all campaigns to get the updated state
+        await get().fetchCampaigns();
+        
+        // Find the newly created campaign in the fetched data
         const { campaigns } = get();
         const newCampaign = campaigns.find(c => c.id === newCampaignId);
         
         if (newCampaign) {
-          set((state: CampaignState) => ({
-            campaigns: [...state.campaigns, newCampaign],
-            filteredCampaigns: [...state.filteredCampaigns, newCampaign]
-          }));
           return newCampaign;
         }
         
-        // If not found in state yet, refresh campaigns
-        await get().fetchCampaigns();
-        return get().campaigns.find(c => c.id === newCampaignId) || null;
+        return null;
       }
       return null;
     } catch (error) {

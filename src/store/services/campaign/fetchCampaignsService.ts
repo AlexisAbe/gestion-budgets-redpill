@@ -23,7 +23,7 @@ export async function fetchCampaignsService(): Promise<Campaign[]> {
     
     // Map database response to our frontend Campaign type
     const campaigns = (data || []).map(item => mapToCampaign(item));
-    console.log('Campaigns fetched from Supabase:', campaigns.length);
+    console.log('Campaigns fetched from Supabase:', campaigns.length, campaigns);
     return campaigns;
   } catch (error) {
     console.error('Error fetching campaigns:', error);

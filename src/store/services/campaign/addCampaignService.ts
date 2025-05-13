@@ -15,6 +15,7 @@ export async function addCampaignService(
 ): Promise<string> {
   try {
     console.log('Starting campaign creation process...');
+    console.log('Campaign data includes client ID:', campaignData.clientId);
     
     // Auto-distribute budget evenly if no weekly budgets provided
     if (Object.keys(campaignData.weeklyBudgets).length === 0) {

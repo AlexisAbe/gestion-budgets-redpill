@@ -17,7 +17,7 @@ export type MediaChannel =
 
 export interface Campaign {
   id: string;
-  clientId: string; // Add client ID to associate campaigns with clients
+  clientId: string; // Client ID to associate campaigns with clients
   mediaChannel: MediaChannel;
   name: string;
   objective: MarketingObjective;
@@ -26,7 +26,7 @@ export interface Campaign {
   totalBudget: number;
   durationDays: number;
   weeklyBudgets: Record<string, number>; // { "W1": 1000, "W2": 2000, ... }
-  actualBudgets?: Record<string, number>; // Added this property for actual spent budgets
+  actualBudgets?: Record<string, number>; // For actual spent budgets
   createdAt: string;
   updatedAt: string;
 }

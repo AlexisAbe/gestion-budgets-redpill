@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 type SupabaseCampaign = {
   id: string;
+  client_id: string; // Ensure client_id field is included
   media_channel: string;
   name: string;
   objective: string;
@@ -16,7 +17,6 @@ type SupabaseCampaign = {
   created_at: string;
   updated_at: string;
   created_by: string | null;
-  client_id?: string; // Add client_id field
 };
 
 type SupabaseAdSet = {
@@ -46,7 +46,7 @@ export function mapToCampaign(supabaseCampaign: SupabaseCampaign): Campaign {
     
     return {
       id: supabaseCampaign.id,
-      clientId: supabaseCampaign.client_id || '1', // Default to first client if not specified
+      clientId: supabaseCampaign.client_id || '1', // Use provided client_id or default
       mediaChannel: supabaseCampaign.media_channel as MediaChannel,
       name: supabaseCampaign.name,
       objective: supabaseCampaign.objective as MarketingObjective,
@@ -64,7 +64,7 @@ export function mapToCampaign(supabaseCampaign: SupabaseCampaign): Campaign {
   // Regular mapping without special handling
   return {
     id: supabaseCampaign.id,
-    clientId: supabaseCampaign.client_id || '1', // Default to first client if not specified
+    clientId: supabaseCampaign.client_id || '1', // Use provided client_id or default
     mediaChannel: supabaseCampaign.media_channel as MediaChannel,
     name: supabaseCampaign.name,
     objective: supabaseCampaign.objective as MarketingObjective,
@@ -88,7 +88,7 @@ export function mapToSupabaseCampaign(campaign: Omit<Campaign, "id" | "createdAt
   }
   
   return {
-    client_id: campaign.clientId, // Include client_id in the Supabase data
+    client_id: campaign.clientId, // Ensure client_id is included
     media_channel: campaign.mediaChannel,
     name: campaign.name,
     objective: campaign.objective,
