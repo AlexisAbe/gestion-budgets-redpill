@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import type {
@@ -157,7 +158,7 @@ function toast({ ...props }: Toast) {
 
   dispatch({
     type: "ADD_TOAST",
-    toast: props,  // Fixed: removed id property from toast object
+    toast: props,
   })
 
   return {
