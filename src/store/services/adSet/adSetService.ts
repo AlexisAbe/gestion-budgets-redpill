@@ -84,6 +84,7 @@ export async function updateAdSet(id: string, updates: Partial<AdSet>): Promise<
     if ('budgetPercentage' in updates) updateData.budget_percentage = updates.budgetPercentage;
     if ('description' in updates) updateData.description = updates.description;
     if ('targetAudience' in updates) updateData.target_audience = updates.targetAudience;
+    if ('actualBudgets' in updates) updateData.actual_budgets = updates.actualBudgets;
     
     const { data, error } = await supabase
       .from('ad_sets')
@@ -146,6 +147,53 @@ export async function deleteAdSet(id: string, name: string): Promise<boolean> {
     toast({
       title: "Erreur",
       description: `Erreur lors de la suppression du sous-ensemble: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+      variant: "destructive"
+    });
+    return false;
+  }
+}
+
+export async function updateAdSetActualBudget(id: string, weekLabel: string, amount: number): Promise<boolean> {
+  try {
+    // Get current ad set
+    const { data: adSetData, error: adSetError } = await supabase
+      .from('ad_sets')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (adSetError) {
+      return supabaseService.handleError(adSetError, 'Erreur lors de la récupération du sous-ensemble');
+    }
+    
+    if (!adSetData) {
+      throw new Error('Sous-ensemble non trouvé');
+    }
+    
+    // Update actual budgets
+    const currentActualBudgets = adSetData.actual_budgets || {};
+    const updatedActualBudgets = {
+      ...currentActualBudgets,
+      [weekLabel]: amount
+    };
+    
+    // Save to database
+    const { error: updateError } = await supabase
+      .from('ad_sets')
+      .update({ actual_budgets: updatedActualBudgets })
+      .eq('id', id);
+    
+    if (updateError) {
+      return supabaseService.handleError(updateError, 'Erreur lors de la mise à jour du budget réel');
+    }
+    
+    console.log('Ad set actual budget updated successfully:', id, weekLabel, amount);
+    return true;
+  } catch (error) {
+    console.error('Error updating ad set actual budget:', error);
+    toast({
+      title: "Erreur",
+      description: `Erreur lors de la mise à jour du budget réel: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
       variant: "destructive"
     });
     return false;

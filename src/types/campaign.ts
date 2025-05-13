@@ -45,6 +45,7 @@ export interface AdSet {
   budgetPercentage: number;
   description?: string;
   targetAudience?: string;
+  actualBudgets?: Record<string, number>; // Actual spent budgets by week for this ad set
   createdAt: string;
   updatedAt: string;
 }

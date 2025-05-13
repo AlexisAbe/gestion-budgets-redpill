@@ -4,6 +4,7 @@ import { AdSet, Campaign } from '@/types/campaign';
 import { formatCurrency } from '@/utils/budgetUtils';
 import { WeeklyView } from '@/types/campaign';
 import { Loader2 } from 'lucide-react';
+import { ActualAdSetBudgetInput } from '../adSets/ActualAdSetBudgetInput';
 
 interface InlineAdSetsProps {
   campaign: Campaign;
@@ -77,17 +78,23 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
             return (
               <td 
                 key={`adset-${adSet.id}-${weekLabel}`} 
-                className={`px-1 py-1 text-right text-xs min-w-[80px] border-l ${!isInCampaign ? 'bg-muted/20' : ''}`}
+                className={`px-1 py-1 text-xs min-w-[80px] border-l ${!isInCampaign ? 'bg-muted/20' : ''}`}
               >
                 {isInCampaign && weekBudget > 0 ? (
-                  <>
+                  <div className="space-y-1">
+                    {/* Planned budget */}
                     <div className="font-medium">{formatCurrency(adSetWeeklyBudget)}</div>
-                    {campaign.actualBudgets && campaign.actualBudgets[weekLabel] ? (
-                      <div className="text-xs text-muted-foreground">
-                        {formatCurrency(campaign.actualBudgets[weekLabel] * adSet.budgetPercentage / 100)}
-                      </div>
-                    ) : null}
-                  </>
+                    
+                    {/* Actual budget input */}
+                    <ActualAdSetBudgetInput
+                      campaignId={campaign.id}
+                      adSetId={adSet.id}
+                      weekLabel={weekLabel}
+                      adSetPercentage={adSet.budgetPercentage}
+                      plannedBudget={adSetWeeklyBudget}
+                      actualCampaignBudget={campaign.actualBudgets && campaign.actualBudgets[weekLabel]}
+                    />
+                  </div>
                 ) : null}
               </td>
             );

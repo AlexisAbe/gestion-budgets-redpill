@@ -26,6 +26,7 @@ type SupabaseAdSet = {
   budget_percentage: number;
   description: string | null;
   target_audience: string | null;
+  actual_budgets?: Json;
   created_at: string;
   updated_at: string;
 };
@@ -107,6 +108,7 @@ export function mapToAdSet(supabaseAdSet: SupabaseAdSet): AdSet {
     budgetPercentage: supabaseAdSet.budget_percentage,
     description: supabaseAdSet.description || undefined,
     targetAudience: supabaseAdSet.target_audience || undefined,
+    actualBudgets: supabaseAdSet.actual_budgets as Record<string, number> | undefined,
     createdAt: supabaseAdSet.created_at,
     updatedAt: supabaseAdSet.updated_at
   };
@@ -118,7 +120,8 @@ export function mapToSupabaseAdSet(adSet: Omit<AdSet, "id" | "createdAt" | "upda
     name: adSet.name,
     budget_percentage: adSet.budgetPercentage,
     description: adSet.description || null,
-    target_audience: adSet.targetAudience || null
+    target_audience: adSet.targetAudience || null,
+    actual_budgets: adSet.actualBudgets || {}
   };
 }
 
