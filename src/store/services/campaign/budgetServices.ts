@@ -74,8 +74,12 @@ export async function autoDistributeBudgetService(
       newWeeklyBudgets = distributeByPercentages(campaign, percentages);
     } else if (method === 'even') {
       newWeeklyBudgets = distributeEvenlyAcrossWeeks(campaign, weeks);
-    } else {
+    } else if (method === 'front-loaded' || method === 'back-loaded' || method === 'bell-curve') {
+      // Only pass valid curve types to distributeByCurve
       newWeeklyBudgets = distributeByCurve(campaign, weeks, method);
+    } else {
+      console.error(`Invalid distribution method: ${method}`);
+      return;
     }
     
     console.log('Auto-distributing budget for campaign ID:', campaignId, 'using method:', method);
