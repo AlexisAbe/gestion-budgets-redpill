@@ -2,14 +2,15 @@
 import { create } from 'zustand';
 import { Campaign, MediaChannel, MarketingObjective } from '../types/campaign';
 import { WeeklyView, generateWeeksForYear } from '../utils/dateUtils';
-import { fetchCampaignsService } from './services/campaignServices';
-import { addCampaignService } from './services/campaignServices';
-import { updateCampaignService } from './services/campaignServices';
-import { deleteCampaignService } from './services/campaignServices';
-import { updateWeeklyBudgetService } from './services/campaignServices';
-import { autoDistributeBudgetService } from './services/campaignServices';
-import { resetStoreService } from './services/campaignServices';
-import { useClientStore } from './clientStore';
+import { 
+  fetchCampaignsService,
+  addCampaignService,
+  updateCampaignService,
+  deleteCampaignService,
+  updateWeeklyBudgetService,
+  autoDistributeBudgetService,
+  resetStoreService
+} from './services/campaign';
 
 const YEAR = 2025;
 
