@@ -1,4 +1,5 @@
 
+// Import the necessary modules from Deno
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0';
 import { corsHeaders } from '../_shared/cors.ts';
 
@@ -38,10 +39,21 @@ Deno.serve(async (req) => {
       throw new Error(`Error fetching ad sets: ${adSetsError.message}`);
     }
     
+    // Parse request body to get the backup type
+    let backupType = 'scheduled';
+    try {
+      const requestData = await req.json();
+      if (requestData && requestData.type) {
+        backupType = requestData.type;
+      }
+    } catch (e) {
+      console.log('No request body or invalid JSON, using default backup type');
+    }
+    
     // Create backup record with all data
     const backupData = {
       timestamp,
-      backup_type: 'scheduled',
+      backup_type: backupType,
       campaigns_data: campaigns,
       ad_sets_data: adSets,
     };

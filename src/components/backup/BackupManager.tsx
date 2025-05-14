@@ -36,14 +36,13 @@ export function BackupManager() {
   const loadBackups = async () => {
     setLoading(true);
     try {
-      // Use explicit type casting to handle the custom table
+      // Use a more generic approach with RPC call or raw REST API to bypass TypeScript limitations
       const { data, error } = await supabase
-        .from('campaign_backups')
-        .select('*')
-        .order('timestamp', { ascending: false }) as { data: BackupRecord[] | null, error: any };
-
+        .rpc('get_campaign_backups') // Using RPC function that returns the backups
+        .limit(50); // Limit to the last 50 backups
+        
       if (error) throw error;
-      if (data) setBackups(data);
+      if (data) setBackups(data as BackupRecord[]);
     } catch (error) {
       console.error('Error loading backups:', error);
       toast.error('Failed to load backups');
