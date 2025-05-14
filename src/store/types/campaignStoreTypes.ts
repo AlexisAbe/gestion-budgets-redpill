@@ -12,6 +12,7 @@ export interface CampaignState {
   updateCampaign: (campaignId: string, updates: Partial<Campaign>) => Promise<void>;
   deleteCampaign: (campaignId: string) => Promise<void>;
   updateWeeklyBudget: (campaignId: string, weekLabel: string, amount: number) => Promise<void>;
+  updateWeeklyNote: (campaignId: string, weekLabel: string, note: string) => Promise<void>;
   updateActualBudget: (campaignId: string, weekLabel: string, amount: number) => Promise<void>;
   autoDistributeBudget: (campaignId: string, distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual', percentages?: Record<string, number>) => Promise<void>;
   resetStore: () => void;

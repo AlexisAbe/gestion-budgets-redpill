@@ -6,6 +6,7 @@ import { useAdSetStore } from '@/store/adSetStore';
 import { Input } from '@/components/ui/input';
 import { ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { WeeklyBudgetNote } from '@/components/ui/WeeklyBudgetNote';
 
 interface ActualAdSetBudgetInputProps {
   campaignId: string;
@@ -14,6 +15,7 @@ interface ActualAdSetBudgetInputProps {
   adSetPercentage: number;
   plannedBudget: number;
   actualCampaignBudget?: number;
+  weeklyNote?: string;
 }
 
 export function ActualAdSetBudgetInput({
@@ -22,7 +24,8 @@ export function ActualAdSetBudgetInput({
   weekLabel,
   adSetPercentage,
   plannedBudget,
-  actualCampaignBudget
+  actualCampaignBudget,
+  weeklyNote
 }: ActualAdSetBudgetInputProps) {
   const { updateCampaign, campaigns } = useCampaignStore();
   const { adSets, fetchAdSets } = useAdSetStore();
@@ -124,33 +127,43 @@ export function ActualAdSetBudgetInput({
   }
 
   return (
-    <div
-      className="cursor-pointer px-1 py-0.5 text-xs group rounded hover:bg-muted/30"
-      onClick={() => setIsEditing(true)}
-    >
-      {isLoading ? (
-        <div className="w-full h-4 bg-muted animate-pulse rounded"></div>
-      ) : actualBudget !== null ? (
-        <div className="flex items-center justify-between">
-          <span className={`${hasVariance ? (variance > 0 ? 'text-red-500' : 'text-green-500') : ''}`}>
-            {formatCurrency(actualBudget)}
+    <div className="flex items-center justify-between">
+      <div
+        className="cursor-pointer px-1 py-0.5 text-xs group rounded hover:bg-muted/30"
+        onClick={() => setIsEditing(true)}
+      >
+        {isLoading ? (
+          <div className="w-full h-4 bg-muted animate-pulse rounded"></div>
+        ) : actualBudget !== null ? (
+          <div className="flex items-center justify-between">
+            <span className={`${hasVariance ? (variance > 0 ? 'text-red-500' : 'text-green-500') : ''}`}>
+              {formatCurrency(actualBudget)}
+            </span>
+            
+            {hasVariance && (
+              <div className="flex items-center ml-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                {variance > 0 ? (
+                  <ArrowUpIcon className="h-3 w-3 text-red-500" />
+                ) : (
+                  <ArrowDownIcon className="h-3 w-3 text-green-500" />
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <span className="text-muted-foreground opacity-50 group-hover:opacity-100 text-xs italic">
+            + Réel
           </span>
-          
-          {hasVariance && (
-            <div className="flex items-center ml-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-              {variance > 0 ? (
-                <ArrowUpIcon className="h-3 w-3 text-red-500" />
-              ) : (
-                <ArrowDownIcon className="h-3 w-3 text-green-500" />
-              )}
-            </div>
-          )}
-        </div>
-      ) : (
-        <span className="text-muted-foreground opacity-50 group-hover:opacity-100 text-xs italic">
-          + Réel
-        </span>
-      )}
+        )}
+      </div>
+      
+      {/* Note button */}
+      <WeeklyBudgetNote 
+        entityId={adSetId} 
+        weekLabel={weekLabel} 
+        isAdSet={true}
+        existingNote={weeklyNote} 
+      />
     </div>
   );
 }

@@ -1,164 +1,176 @@
 
 import { create } from 'zustand';
 import { AdSet } from '@/types/campaign';
-import { 
-  fetchAdSetsForCampaign, 
-  addAdSet, 
-  updateAdSet, 
-  deleteAdSet,
-  validateAdSetBudgets
-} from './services/adSet/adSetService';
-import { toast } from '@/hooks/use-toast';
+import { fetchAdSetsService, addAdSetService, updateAdSetService, deleteAdSetService, updateAdSetWeeklyNoteService } from './services/adSet/adSetService';
+import { toast } from 'sonner';
 
 interface AdSetState {
-  adSets: Record<string, AdSet[]>; // Keyed by campaign ID
+  adSets: Record<string, AdSet[]>; // Map campaign ID to array of ad sets
   isLoading: boolean;
-  fetchAdSets: (campaignId: string) => Promise<AdSet[]>;
-  addAdSet: (adSet: Omit<AdSet, "id" | "createdAt" | "updatedAt">) => Promise<AdSet | null>;
-  updateAdSet: (id: string, updates: Partial<AdSet>) => Promise<AdSet | null>;
-  deleteAdSet: (id: string, name: string) => Promise<boolean>;
-  validateBudgets: (campaignId: string) => Promise<{ valid: boolean, total: number }>;
+  error: string | null;
+  fetchAdSets: (campaignId: string) => Promise<void>;
+  addAdSet: (adSet: Omit<AdSet, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateAdSet: (adSetId: string, updates: Partial<AdSet>) => Promise<void>;
+  deleteAdSet: (adSetId: string) => Promise<void>;
+  updateAdSetWeeklyNote: (adSetId: string, weekLabel: string, note: string) => Promise<void>;
 }
 
 export const useAdSetStore = create<AdSetState>((set, get) => ({
   adSets: {},
   isLoading: false,
+  error: null,
   
   fetchAdSets: async (campaignId: string) => {
-    set(state => ({ isLoading: true }));
+    set({ isLoading: true });
     try {
-      const adSets = await fetchAdSetsForCampaign(campaignId);
-      console.log('Ad sets fetched:', adSets.length);
-      
-      set(state => ({
+      const fetchedAdSets = await fetchAdSetsService(campaignId);
+      set((state) => ({
         adSets: {
           ...state.adSets,
-          [campaignId]: adSets
-        }
+          [campaignId]: fetchedAdSets
+        },
+        isLoading: false
       }));
-      return adSets;
     } catch (error) {
       console.error('Error fetching ad sets:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de récupérer les sous-ensembles",
-        variant: "destructive"
+      set({ 
+        error: error instanceof Error ? error.message : 'An unknown error occurred',
+        isLoading: false 
       });
-      return [];
-    } finally {
-      set({ isLoading: false });
     }
   },
   
-  addAdSet: async (adSetData) => {
+  addAdSet: async (adSet) => {
     set({ isLoading: true });
     try {
-      const newAdSet = await addAdSet(adSetData);
-      if (newAdSet) {
-        const campaignId = newAdSet.campaignId;
-        set(state => ({
+      const newAdSet = await addAdSetService(adSet);
+      set((state) => {
+        const campaignId = adSet.campaignId;
+        const currentAdSets = state.adSets[campaignId] || [];
+        return {
           adSets: {
             ...state.adSets,
-            [campaignId]: [
-              ...(state.adSets[campaignId] || []),
-              newAdSet
-            ]
-          }
-        }));
-        toast({
-          title: "Succès",
-          description: `Sous-ensemble "${newAdSet.name}" ajouté`,
-        });
-      }
-      return newAdSet;
+            [campaignId]: [...currentAdSets, newAdSet]
+          },
+          isLoading: false
+        };
+      });
     } catch (error) {
       console.error('Error adding ad set:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible d'ajouter le sous-ensemble",
-        variant: "destructive"
+      set({ 
+        error: error instanceof Error ? error.message : 'An unknown error occurred',
+        isLoading: false 
       });
-      return null;
-    } finally {
-      set({ isLoading: false });
     }
   },
   
-  updateAdSet: async (id, updates) => {
+  updateAdSet: async (adSetId, updates) => {
     set({ isLoading: true });
     try {
-      const updatedAdSet = await updateAdSet(id, updates);
-      if (updatedAdSet) {
+      const updatedAdSet = await updateAdSetService(adSetId, updates);
+      set((state) => {
         const campaignId = updatedAdSet.campaignId;
-        set(state => ({
+        const currentAdSets = state.adSets[campaignId] || [];
+        return {
           adSets: {
             ...state.adSets,
-            [campaignId]: state.adSets[campaignId].map(adSet => 
-              adSet.id === id ? updatedAdSet : adSet
+            [campaignId]: currentAdSets.map(adSet => 
+              adSet.id === adSetId ? { ...adSet, ...updates } : adSet
             )
-          }
-        }));
-        toast({
-          title: "Succès",
-          description: `Sous-ensemble "${updatedAdSet.name}" mis à jour`,
-        });
-      }
-      return updatedAdSet;
+          },
+          isLoading: false
+        };
+      });
     } catch (error) {
       console.error('Error updating ad set:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour le sous-ensemble",
-        variant: "destructive"
+      set({ 
+        error: error instanceof Error ? error.message : 'An unknown error occurred',
+        isLoading: false 
       });
-      return null;
-    } finally {
-      set({ isLoading: false });
     }
   },
   
-  deleteAdSet: async (id, name) => {
+  deleteAdSet: async (adSetId) => {
     set({ isLoading: true });
     try {
-      const success = await deleteAdSet(id, name);
-      if (success) {
-        // Find which campaign this ad set belongs to
-        let campaignId: string | null = null;
-        for (const [cId, adSets] of Object.entries(get().adSets)) {
-          if (adSets.some(adSet => adSet.id === id)) {
-            campaignId = cId;
-            break;
-          }
+      // First, identify which campaign this ad set belongs to
+      let campaignId: string | null = null;
+      
+      // Look through all campaigns to find the ad set
+      Object.entries(get().adSets).forEach(([cId, adSets]) => {
+        if (adSets.some(adSet => adSet.id === adSetId)) {
+          campaignId = cId;
         }
+      });
+      
+      if (!campaignId) throw new Error('Ad set not found');
+      
+      await deleteAdSetService(adSetId);
+      
+      set((state) => {
+        if (!campaignId) return state; // Should never happen due to error check above
         
-        if (campaignId) {
-          set(state => ({
-            adSets: {
-              ...state.adSets,
-              [campaignId!]: state.adSets[campaignId!].filter(adSet => adSet.id !== id)
-            }
-          }));
-          toast({
-            title: "Succès",
-            description: `Sous-ensemble "${name}" supprimé`,
-          });
-        }
-      }
-      return success;
+        const currentAdSets = state.adSets[campaignId] || [];
+        return {
+          adSets: {
+            ...state.adSets,
+            [campaignId]: currentAdSets.filter(adSet => adSet.id !== adSetId)
+          },
+          isLoading: false
+        };
+      });
     } catch (error) {
       console.error('Error deleting ad set:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer le sous-ensemble",
-        variant: "destructive"
+      set({ 
+        error: error instanceof Error ? error.message : 'An unknown error occurred',
+        isLoading: false 
       });
-      return false;
-    } finally {
-      set({ isLoading: false });
     }
   },
   
-  validateBudgets: async (campaignId: string) => {
-    return await validateAdSetBudgets(campaignId);
+  updateAdSetWeeklyNote: async (adSetId, weekLabel, note) => {
+    try {
+      await updateAdSetWeeklyNoteService(adSetId, weekLabel, note);
+      
+      set((state) => {
+        // Find which campaign this ad set belongs to
+        let campaignId: string | null = null;
+        let adSetIndex = -1;
+        
+        Object.entries(state.adSets).forEach(([cId, adSets]) => {
+          const index = adSets.findIndex(adSet => adSet.id === adSetId);
+          if (index !== -1) {
+            campaignId = cId;
+            adSetIndex = index;
+          }
+        });
+        
+        if (!campaignId || adSetIndex === -1) return state; // Ad set not found
+        
+        const currentAdSets = [...state.adSets[campaignId]];
+        const adSet = currentAdSets[adSetIndex];
+        
+        // Update the weekly note
+        currentAdSets[adSetIndex] = {
+          ...adSet,
+          weeklyNotes: {
+            ...(adSet.weeklyNotes || {}),
+            [weekLabel]: note
+          }
+        };
+        
+        return {
+          adSets: {
+            ...state.adSets,
+            [campaignId]: currentAdSets
+          }
+        };
+      });
+      
+      toast.success('Note enregistrée avec succès');
+    } catch (error) {
+      console.error('Error updating ad set note:', error);
+      toast.error(`Erreur lors de la mise à jour de la note: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    }
   }
 }));

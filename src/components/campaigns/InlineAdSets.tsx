@@ -74,6 +74,7 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
             const weekLabel = week.weekLabel;
             const weekBudget = campaign.weeklyBudgets[weekLabel] || 0;
             const adSetWeeklyBudget = weekBudget * adSet.budgetPercentage / 100;
+            const weeklyNote = adSet.weeklyNotes ? adSet.weeklyNotes[weekLabel] : undefined;
             
             return (
               <td 
@@ -93,6 +94,7 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
                       adSetPercentage={adSet.budgetPercentage}
                       plannedBudget={adSetWeeklyBudget}
                       actualCampaignBudget={campaign.actualBudgets && campaign.actualBudgets[weekLabel]}
+                      weeklyNote={weeklyNote}
                     />
                   </div>
                 ) : null}
