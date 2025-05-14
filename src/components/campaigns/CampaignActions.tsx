@@ -1,19 +1,10 @@
-
 import React, { useState } from 'react';
 import { MoreVertical, BarChart, Database, Trash2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { EditCampaignForm } from './EditCampaignForm';
 import { useCampaignStore } from '@/store/campaignStore';
-
 interface CampaignActionsProps {
   campaignId: string;
   campaignName: string;
@@ -27,7 +18,6 @@ interface CampaignActionsProps {
   onToggleAdSets: () => void;
   showAdSets: boolean;
 }
-
 export function CampaignActions({
   campaignId,
   campaignName,
@@ -43,17 +33,16 @@ export function CampaignActions({
 }: CampaignActionsProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const { campaigns } = useCampaignStore();
-  
+  const {
+    campaigns
+  } = useCampaignStore();
+
   // Find the campaign from the store
   const campaign = campaigns.find(c => c.id === campaignId);
-  
   if (!campaign) {
     return <div>Campaign not found</div>;
   }
-  
-  return (
-    <div className="flex justify-end">
+  return <div className="flex justify-end">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm">
@@ -85,10 +74,7 @@ export function CampaignActions({
             {showInlineAdSets ? "Masquer les sous-ensembles" : "Afficher les sous-ensembles"}
           </DropdownMenuItem>
           
-          <DropdownMenuItem onClick={() => onToggleChart(campaignId)}>
-            <BarChart className="mr-2 h-4 w-4" />
-            {showChart ? "Masquer le graphique" : "Afficher le graphique"}
-          </DropdownMenuItem>
+          
           
           <DropdownMenuSeparator />
           
@@ -111,13 +97,10 @@ export function CampaignActions({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction 
-              className="bg-red-600 hover:bg-red-700"
-              onClick={async () => {
-                await onDeleteCampaign(campaignId);
-                setIsDeleteOpen(false);
-              }}
-            >
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={async () => {
+            await onDeleteCampaign(campaignId);
+            setIsDeleteOpen(false);
+          }}>
               Supprimer
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -125,11 +108,6 @@ export function CampaignActions({
       </AlertDialog>
       
       {/* Edit Campaign Form Dialog */}
-      <EditCampaignForm 
-        campaign={campaign}
-        open={isEditOpen}
-        onOpenChange={setIsEditOpen}
-      />
-    </div>
-  );
+      <EditCampaignForm campaign={campaign} open={isEditOpen} onOpenChange={setIsEditOpen} />
+    </div>;
 }
