@@ -30,8 +30,11 @@ export const restoreFromBackup = async (
     console.log(`Début de la restauration${restoreForCurrentClientOnly ? ' pour le client actuel' : ' complète'}`);
     console.log(`Backup contient ${selectedBackup.campaigns_data.length} campagnes et ${selectedBackup.ad_sets_data.length} ad sets`);
     
-    // Clear existing store data
-    if (resetStore) resetStore();
+    // Clear existing store data only if doing a full restoration
+    // For client-specific restoration, we don't want to reset the entire store
+    if (!restoreForCurrentClientOnly && resetStore) {
+      resetStore();
+    }
     
     // Filter campaigns if restoring for current client only
     const campaignsToRestore = restoreForCurrentClientOnly && selectedClientId
@@ -48,6 +51,45 @@ export const restoreFromBackup = async (
     );
     
     console.log(`Ad sets à restaurer: ${adSetsToRestore.length}`);
+    
+    // For client-specific restoration, we need to first delete existing campaigns and ad sets
+    // for the selected client, before restoring from backup
+    if (restoreForCurrentClientOnly && selectedClientId) {
+      console.log(`Suppression des campagnes existantes pour le client ${selectedClientId} avant restauration`);
+      
+      // Get existing campaign IDs for the selected client
+      const { data: existingCampaigns, error: existingCampaignsError } = await supabase
+        .from('campaigns')
+        .select('id')
+        .eq('client_id', selectedClientId);
+      
+      if (existingCampaignsError) {
+        console.error('Erreur lors de la récupération des campagnes existantes:', existingCampaignsError);
+      } else if (existingCampaigns && existingCampaigns.length > 0) {
+        const existingCampaignIds = existingCampaigns.map(c => c.id);
+        console.log(`${existingCampaignIds.length} campagnes existantes trouvées pour le client ${selectedClientId}`);
+        
+        // Delete ad sets for these campaigns first (foreign key constraint)
+        const { error: deleteAdSetsError } = await supabase
+          .from('ad_sets')
+          .delete()
+          .in('campaign_id', existingCampaignIds);
+        
+        if (deleteAdSetsError) {
+          console.error('Erreur lors de la suppression des ad sets existants:', deleteAdSetsError);
+        }
+        
+        // Then delete the campaigns
+        const { error: deleteCampaignsError } = await supabase
+          .from('campaigns')
+          .delete()
+          .in('id', existingCampaignIds);
+        
+        if (deleteCampaignsError) {
+          console.error('Erreur lors de la suppression des campagnes existantes:', deleteCampaignsError);
+        }
+      }
+    }
     
     // Restore campaigns first with detailed error handling
     const campaignResults: RestoreResult[] = [];
