@@ -24,12 +24,12 @@ export function CampaignHeader({
   return (
     <>
       {/* Fixed columns */}
-      <td className="px-3 py-2 align-middle">
+      <td className="px-3 py-2 align-middle sticky left-0 bg-card z-10">
         <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${getMediaChannelClass(campaign.mediaChannel)}`}>
           {campaign.mediaChannel}
         </span>
       </td>
-      <td className="px-3 py-2 align-middle max-w-[200px]">
+      <td className="px-3 py-2 align-middle max-w-[200px] sticky left-[100px] bg-card z-10">
         <div className="font-medium truncate">{campaign.name}</div>
       </td>
       <td className="px-3 py-2 align-middle">

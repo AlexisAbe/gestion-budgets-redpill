@@ -52,7 +52,7 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
     <>
       {adSets.map(adSet => (
         <tr key={`adset-${adSet.id}`} className="bg-muted/5 hover:bg-muted/10">
-          <td className="pl-8 py-1 text-xs" colSpan={2}>
+          <td className="pl-8 py-1 text-xs sticky left-0 bg-muted/5 z-10" colSpan={2}>
             <div className="flex items-center">
               <div className="w-2 h-2 bg-primary rounded-full mr-2"></div>
               <span className="font-medium">{adSet.name}</span>

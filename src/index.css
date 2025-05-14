@@ -106,4 +106,13 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     @apply bg-muted-foreground/40 rounded;
   }
+  
+  /* Classes pour les colonnes fixes */
+  .sticky-left {
+    @apply sticky left-0 z-10;
+  }
+  
+  .sticky-left-shadow {
+    @apply stuck-shadow after:absolute after:top-0 after:right-0 after:h-full after:w-4 after:bg-gradient-to-r after:from-transparent after:to-background/20;
+  }
 }

@@ -8,6 +8,7 @@ import { ExportTools } from '../export/ExportTools';
 import { ChannelFilter } from '../filters/ChannelFilter';
 import { MediaChannel } from '@/types/campaign';
 import { useClientStore } from '@/store/clientStore';
+import { ScrollArea } from '../ui/scroll-area';
 
 export function CampaignTable() {
   const { campaigns, filteredCampaigns, weeks } = useCampaignStore();
@@ -58,55 +59,53 @@ export function CampaignTable() {
       </div>
       
       <div className="border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto max-w-full">
-          <div className="inline-block min-w-full align-middle">
-            <table className="min-w-full divide-y divide-border">
-              <thead>
-                <tr className="bg-muted/50">
-                  <th className="fixed-column-header">Channel</th>
-                  <th className="fixed-column-header">Campaign</th>
-                  <th className="fixed-column-header">Objective</th>
-                  <th className="fixed-column-header">Target</th>
-                  <th className="fixed-column-header">Start</th>
-                  <th className="fixed-column-header">Budget</th>
-                  <th className="fixed-column-header">Days</th>
-                  <th className="fixed-column-header">Actions</th>
-                  
-                  {/* Weekly headers */}
-                  {weeks.map(week => (
-                    <th key={week.weekLabel} className="week-header">
-                      {week.weekLabel}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border bg-card text-foreground">
-                {displayedCampaigns.length === 0 && (
-                  <tr>
-                    <td colSpan={8 + weeks.length} className="p-8 text-center text-muted-foreground">
-                      {campaigns.length === 0 
-                        ? "No campaigns yet. Add a campaign to get started."
-                        : selectedClientId 
-                          ? "No campaigns for this client. Add a campaign to get started."
-                          : "No campaigns match your selected filters."}
-                    </td>
-                  </tr>
-                )}
-                {displayedCampaigns.map(campaign => (
-                  <React.Fragment key={campaign.id}>
-                    <CampaignRow 
-                      campaign={campaign} 
-                      weeks={weeks}
-                      onToggleChart={toggleChart}
-                      showChart={!!expandedCampaigns[campaign.id]}
-                      showInlineAdSets={!!inlineAdSets[campaign.id]}
-                      onToggleInlineAdSets={toggleInlineAdSets}
-                    />
-                  </React.Fragment>
+        <div className="overflow-x-auto max-w-full relative">
+          <table className="min-w-full divide-y divide-border">
+            <thead>
+              <tr className="bg-muted/50">
+                <th className="fixed-column-header sticky left-0 z-20 bg-muted/50">Channel</th>
+                <th className="fixed-column-header sticky left-[100px] z-20 bg-muted/50">Campaign</th>
+                <th className="fixed-column-header">Objective</th>
+                <th className="fixed-column-header">Target</th>
+                <th className="fixed-column-header">Start</th>
+                <th className="fixed-column-header">Budget</th>
+                <th className="fixed-column-header">Days</th>
+                <th className="fixed-column-header">Actions</th>
+                
+                {/* Weekly headers */}
+                {weeks.map(week => (
+                  <th key={week.weekLabel} className="week-header">
+                    {week.weekLabel}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border bg-card text-foreground">
+              {displayedCampaigns.length === 0 && (
+                <tr>
+                  <td colSpan={8 + weeks.length} className="p-8 text-center text-muted-foreground">
+                    {campaigns.length === 0 
+                      ? "No campaigns yet. Add a campaign to get started."
+                      : selectedClientId 
+                        ? "No campaigns for this client. Add a campaign to get started."
+                        : "No campaigns match your selected filters."}
+                  </td>
+                </tr>
+              )}
+              {displayedCampaigns.map(campaign => (
+                <React.Fragment key={campaign.id}>
+                  <CampaignRow 
+                    campaign={campaign} 
+                    weeks={weeks}
+                    onToggleChart={toggleChart}
+                    showChart={!!expandedCampaigns[campaign.id]}
+                    showInlineAdSets={!!inlineAdSets[campaign.id]}
+                    onToggleInlineAdSets={toggleInlineAdSets}
+                  />
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
