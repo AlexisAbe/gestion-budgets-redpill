@@ -1,5 +1,5 @@
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0';
 import { corsHeaders } from '../_shared/cors.ts';
 
 // Create a single supabase client for interacting with your database

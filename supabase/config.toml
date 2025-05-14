@@ -22,6 +22,10 @@ rls_enabled = false
 name = "profiles"
 rls_enabled = false
 
+[[postgres_config.tables]]
+name = "campaign_backups"
+rls_enabled = false
+
 # Configuration for the backup function
 [functions.backup-campaigns]
 verify_jwt = false

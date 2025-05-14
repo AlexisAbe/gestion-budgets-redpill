@@ -14,6 +14,7 @@ interface ClientState {
   addClient: (client: Client) => void;
   removeClient: (id: string) => void;
   selectClient: (id: string | null) => void;
+  fetchClients: () => void; // Added the missing method
 }
 
 // Initial clients
@@ -28,6 +29,14 @@ export const useClientStore = create<ClientState>()(
     (set) => ({
       clients: initialClients,
       selectedClientId: initialClients[0].id,
+      
+      fetchClients: () => {
+        // This would normally fetch clients from an API
+        // For now, we'll just ensure the initial clients are loaded
+        set((state) => ({
+          clients: state.clients.length ? state.clients : initialClients
+        }));
+      },
       
       addClient: (client) => set((state) => {
         // Check if a client with the same name already exists

@@ -1,3 +1,4 @@
+
 import {
   LayoutDashboard,
   ListChecks,
@@ -8,7 +9,6 @@ import {
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
 
-import { Icons } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -18,7 +18,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
-import { Shell } from "@/components/shell"
 import {
   Tabs,
   TabsContent,
@@ -26,22 +25,16 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { useClientStore } from "@/store/clientStore"
-import { useEffect } from "react"
-import { ClientSelector } from "@/components/client/ClientSelector"
+import { ClientSelector } from "@/components/layout/ClientSelector"
 import { BackupManager } from '@/components/backup/BackupManager';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLElement> {}
 
 export function Sidebar({ className, ...props }: SidebarProps) {
   const selectedClientId = useClientStore((state) => state.selectedClientId)
-  const fetchClients = useClientStore((state) => state.fetchClients)
-
-  useEffect(() => {
-    fetchClients()
-  }, [fetchClients])
 
   return (
-    <Shell className={className} {...props}>
+    <div className={`flex flex-col w-full ${className || ''}`} {...props}>
       <div className="flex flex-col w-full">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-2">
@@ -121,6 +114,6 @@ export function Sidebar({ className, ...props }: SidebarProps) {
           </TabsContent>
         </Tabs>
       </div>
-    </Shell>
-  )
+    </div>
+  );
 }

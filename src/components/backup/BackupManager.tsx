@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useCampaignStore } from '@/store/campaignStore';
 import { AlertCircle, CheckCircle, Calendar, Clock, Database } from 'lucide-react';
+import { Json } from '@/integrations/supabase/types';
 
+// Define the backup record type to match what's in the database
 type BackupRecord = {
   id: string;
   timestamp: string;
@@ -34,13 +36,14 @@ export function BackupManager() {
   const loadBackups = async () => {
     setLoading(true);
     try {
+      // Use explicit type casting to handle the custom table
       const { data, error } = await supabase
         .from('campaign_backups')
         .select('*')
-        .order('timestamp', { ascending: false });
+        .order('timestamp', { ascending: false }) as { data: BackupRecord[] | null, error: any };
 
       if (error) throw error;
-      setBackups(data || []);
+      if (data) setBackups(data);
     } catch (error) {
       console.error('Error loading backups:', error);
       toast.error('Failed to load backups');
@@ -52,11 +55,11 @@ export function BackupManager() {
   const createManualBackup = async () => {
     toast.loading('Creating backup...');
     try {
-      const response = await fetch('/api/functions/v1/backup-campaigns', {
+      const response = await fetch('https://wmclujwtwuzscfqbzfxf.supabase.co/functions/v1/backup-campaigns', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession()}`
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`
         },
         body: JSON.stringify({ type: 'manual' })
       });
