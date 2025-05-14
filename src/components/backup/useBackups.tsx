@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { BackupRecord } from './types';
 import { useCampaignStore } from '@/store/campaignStore';
+import { useClientStore } from '@/store/clientStore';
 
 export function useBackups() {
   const [backups, setBackups] = useState<BackupRecord[]>([]);
@@ -12,6 +13,7 @@ export function useBackups() {
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const resetStore = useCampaignStore(state => state.resetStore);
   const fetchCampaigns = useCampaignStore(state => state.fetchCampaigns);
+  const selectedClientId = useClientStore(state => state.selectedClientId);
 
   useEffect(() => {
     loadBackups();
@@ -76,7 +78,7 @@ export function useBackups() {
     setRestoreDialogOpen(true);
   };
 
-  const restoreFromBackup = async () => {
+  const restoreFromBackup = async (restoreForCurrentClientOnly: boolean = false) => {
     if (!selectedBackup) return;
     
     toast.loading('Restoring data from backup...');
@@ -84,8 +86,19 @@ export function useBackups() {
       // Clear existing store data
       resetStore();
       
+      // Filter campaigns if restoring for current client only
+      const campaignsToRestore = restoreForCurrentClientOnly && selectedClientId
+        ? selectedBackup.campaigns_data.filter(campaign => campaign.client_id === selectedClientId)
+        : selectedBackup.campaigns_data;
+        
+      // Filter ad sets for the selected campaigns if restoring for current client only
+      const campaignIds = campaignsToRestore.map(c => c.id);
+      const adSetsToRestore = restoreForCurrentClientOnly && selectedClientId
+        ? selectedBackup.ad_sets_data.filter(adSet => campaignIds.includes(adSet.campaign_id))
+        : selectedBackup.ad_sets_data;
+      
       // Restore campaigns first
-      for (const campaignData of selectedBackup.campaigns_data) {
+      for (const campaignData of campaignsToRestore) {
         const { error: campaignError } = await supabase
           .from('campaigns')
           .upsert(campaignData, { onConflict: 'id' });
@@ -96,7 +109,7 @@ export function useBackups() {
       }
       
       // Then restore ad sets
-      for (const adSetData of selectedBackup.ad_sets_data) {
+      for (const adSetData of adSetsToRestore) {
         const { error: adSetError } = await supabase
           .from('ad_sets')
           .upsert(adSetData, { onConflict: 'id' });
