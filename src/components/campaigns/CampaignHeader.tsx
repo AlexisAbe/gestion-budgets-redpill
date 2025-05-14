@@ -30,7 +30,7 @@ export function CampaignHeader({
         </span>
       </td>
       <td className="px-3 py-2 align-middle max-w-[200px] sticky left-[100px] bg-card z-10">
-        <div className="font-medium truncate">{campaign.name}</div>
+        <div className="font-medium break-words">{campaign.name}</div>
       </td>
       <td className="px-3 py-2 align-middle">
         <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${getObjectiveClass(campaign.objective)}`}>
