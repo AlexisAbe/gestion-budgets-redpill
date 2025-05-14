@@ -21,6 +21,8 @@ export function useBackups() {
   useEffect(() => {
     if (session) {
       loadBackups();
+    } else {
+      setLoading(false);
     }
   }, [session]);
 

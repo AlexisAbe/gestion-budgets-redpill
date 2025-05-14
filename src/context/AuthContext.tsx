@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -18,10 +19,17 @@ const MOCK_USERS = [
   { id: '5', email: 'emily@example.com', full_name: 'Emily Davis' },
 ];
 
+// Mock session interface
+interface Session {
+  access_token: string;
+  user: User;
+}
+
 interface AuthContextType {
   user: User | null;
   users: User[];
   isLoading: boolean;
+  session: Session | null; // Added session property to fix the type error
   selectUser: (userId: string) => void;
   signOut: () => void;
 }
@@ -33,6 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const defaultUser = MOCK_USERS[0];
   const [user, setUser] = useState<User | null>(defaultUser);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Create a mock session for the selected user
+  const [session, setSession] = useState<Session | null>({
+    access_token: 'mock-token-for-' + defaultUser.id,
+    user: defaultUser
+  });
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,6 +67,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       localStorage.setItem('selectedUser', JSON.stringify(selectedUser));
       setUser(selectedUser);
+      
+      // Update the session with the new user
+      setSession({
+        access_token: 'mock-token-for-' + selectedUser.id,
+        user: selectedUser
+      });
+      
       toast.success("Connexion réussie");
       navigate('/');
     } catch (error) {
@@ -63,11 +85,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = () => {
     // Instead of signing out, keep the default user
     setUser(defaultUser);
+    // Update the session with the default user
+    setSession({
+      access_token: 'mock-token-for-' + defaultUser.id,
+      user: defaultUser
+    });
     navigate('/');
   };
 
   return (
-    <AuthContext.Provider value={{ user, users: MOCK_USERS, isLoading, selectUser, signOut }}>
+    <AuthContext.Provider value={{ user, users: MOCK_USERS, isLoading, session, selectUser, signOut }}>
       {children}
     </AuthContext.Provider>
   );
