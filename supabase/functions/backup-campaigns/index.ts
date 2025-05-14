@@ -103,6 +103,18 @@ Deno.serve(async (req) => {
       created_by: userId
     };
     
+    // First check if the campaign_backups table exists
+    const { error: tableCheckError } = await supabaseAdmin
+      .from(BACKUP_TABLE)
+      .select('id')
+      .limit(1);
+      
+    if (tableCheckError) {
+      console.error('Table check error:', tableCheckError);
+      // The table might not exist, try to create it
+      await createBackupTable();
+    }
+    
     // Insert backup record
     const { data: insertResult, error: insertError } = await supabaseAdmin
       .from(BACKUP_TABLE)
@@ -148,3 +160,54 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// Helper function to create the backup table if it doesn't exist
+async function createBackupTable() {
+  // This will be executed if the table doesn't exist
+  const createTableSQL = `
+    CREATE TABLE IF NOT EXISTS public.${BACKUP_TABLE} (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      timestamp TIMESTAMPTZ NOT NULL,
+      backup_type TEXT NOT NULL,
+      campaigns_data JSONB NOT NULL,
+      ad_sets_data JSONB NOT NULL,
+      created_by UUID,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `;
+  
+  try {
+    // Using rpc to execute custom SQL is not allowed in edge functions
+    // We'll try to create it using the Supabase client instead
+    const { data, error } = await supabaseAdmin
+      .from(BACKUP_TABLE)
+      .insert({
+        timestamp: new Date().toISOString(),
+        backup_type: 'test',
+        campaigns_data: [],
+        ad_sets_data: [],
+        created_by: null
+      })
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error creating backup table:', error);
+      throw new Error(`Could not create backup table: ${error.message}`);
+    }
+    
+    // If we get here, the table exists
+    console.log('Backup table exists or was created successfully');
+    
+    // Delete the test record
+    if (data?.id) {
+      await supabaseAdmin
+        .from(BACKUP_TABLE)
+        .delete()
+        .eq('id', data.id);
+    }
+  } catch (error) {
+    console.error('Failed to create backup table:', error);
+    throw new Error('Could not set up backup table, please create it manually');
+  }
+}

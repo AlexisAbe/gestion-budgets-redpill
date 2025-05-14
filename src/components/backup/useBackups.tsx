@@ -97,7 +97,8 @@ export function useBackups() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${session.access_token}`,
+          // Do not include apikey here as it's not needed for edge functions
         },
         body: JSON.stringify({ type: 'manual' })
       });
