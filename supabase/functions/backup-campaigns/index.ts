@@ -2,6 +2,7 @@
 // Import the necessary modules from Deno
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0';
 import { corsHeaders } from '../_shared/cors.ts';
+import { v4 as uuidv4 } from 'https://esm.sh/uuid@9.0.0';
 
 // Create a single supabase client for interacting with your database
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
@@ -34,8 +35,15 @@ Deno.serve(async (req) => {
     
     if (isMockToken) {
       // Extract user ID from mock token (format: mock-token-for-{userId})
-      userId = authHeader.replace('Bearer mock-token-for-', '');
-      console.log(`Using mock token for user ID: ${userId}`);
+      const mockUserId = authHeader.replace('Bearer mock-token-for-', '');
+      console.log(`Using mock token for user ID: ${mockUserId}`);
+      
+      // For mock tokens with non-UUID format (like "1"), generate a valid UUID
+      userId = mockUserId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i) 
+        ? mockUserId 
+        : uuidv4(); // Generate a valid UUID if the mockUserId is not a valid UUID
+        
+      console.log(`Using ${mockUserId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i) ? 'provided' : 'generated'} UUID: ${userId}`);
     } else if (authHeader) {
       // For real tokens, verify with Supabase Auth
       const token = authHeader.replace('Bearer ', '');
