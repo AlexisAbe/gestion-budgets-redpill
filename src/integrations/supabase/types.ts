@@ -98,6 +98,36 @@ export type Database = {
           },
         ]
       }
+      campaign_backups: {
+        Row: {
+          ad_sets_data: Json
+          backup_type: string
+          campaigns_data: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          timestamp: string
+        }
+        Insert: {
+          ad_sets_data: Json
+          backup_type: string
+          campaigns_data: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          timestamp: string
+        }
+        Update: {
+          ad_sets_data?: Json
+          backup_type?: string
+          campaigns_data?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           client_id: string | null
@@ -186,7 +216,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_campaign_backups: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          ad_sets_data: Json
+          backup_type: string
+          campaigns_data: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          timestamp: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

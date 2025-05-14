@@ -40,24 +40,13 @@ export function useBackups() {
     setLoading(true);
     try {
       console.log("Chargement des sauvegardes avec token:", session.access_token);
-      // API call to get campaign backups
-      const response = await fetch(`https://wmclujwtwuzscfqbzfxf.supabase.co/rest/v1/rpc/get_campaign_backups`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY2x1and0d3V6c2NmcWJ6ZnhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMjc0NTYsImV4cCI6MjA2MjcwMzQ1Nn0.x7ZXita8X6zfYNbEc29Hd3ZhSxXRaqBlqUyduedUK7c'
-        },
-        body: JSON.stringify({})
-      });
+      // Use RPC to call the get_campaign_backups function instead of direct table access
+      const { data, error } = await supabase.rpc('get_campaign_backups');
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Fetch error response:', response.status, errorData);
-        throw new Error(`Échec de la requête: ${response.status} ${response.statusText}`);
+      if (error) {
+        throw error;
       }
       
-      const data = await response.json();
       console.log("Sauvegardes chargées:", data);
       setBackups(data as BackupRecord[]);
     } catch (error) {
@@ -105,12 +94,19 @@ export function useBackups() {
 
       console.log("Réponse status:", response.status);
       
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.error || 'Échec de la création de sauvegarde');
+        } catch (e) {
+          throw new Error(`Échec de la création de sauvegarde (${response.status}): ${errorText}`);
+        }
+      }
+      
       const responseData = await response.json();
       console.log("Réponse donnée:", responseData);
-      
-      if (!response.ok) {
-        throw new Error(responseData.error || 'Failed to create backup');
-      }
       
       toast({
         variant: "success",
