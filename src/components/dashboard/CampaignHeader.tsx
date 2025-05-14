@@ -7,47 +7,48 @@ import { BarChart3, CheckSquare, AlertTriangle, BarChart2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function CampaignHeader() {
-  const { campaigns } = useCampaignStore();
+  // Use filteredCampaigns (which are already filtered by client) instead of all campaigns
+  const { filteredCampaigns } = useCampaignStore();
   
-  // Calculate total budget across all campaigns
-  const totalBudget = campaigns.reduce((sum, campaign) => sum + campaign.totalBudget, 0);
+  // Calculate total budget for the selected client's campaigns
+  const totalBudget = filteredCampaigns.reduce((sum, campaign) => sum + campaign.totalBudget, 0);
   
-  // Calculate allocated budget across all campaigns
-  const allocatedBudget = campaigns.reduce((sum, campaign) => {
+  // Calculate allocated budget for the selected client's campaigns
+  const allocatedBudget = filteredCampaigns.reduce((sum, campaign) => {
     return sum + Object.values(campaign.weeklyBudgets).reduce((weekSum, budget) => weekSum + (budget || 0), 0);
   }, 0);
   
   // Calculate percentage allocated
   const percentageAllocated = totalBudget > 0 ? (allocatedBudget / totalBudget) * 100 : 0;
   
-  // Count campaigns with balanced budget
-  const balancedCampaigns = campaigns.filter(campaign => {
+  // Count campaigns with balanced budget for the selected client
+  const balancedCampaigns = filteredCampaigns.filter(campaign => {
     const weeklySum = Object.values(campaign.weeklyBudgets).reduce((sum, budget) => sum + (budget || 0), 0);
     return Math.abs(weeklySum - campaign.totalBudget) < 0.01;
   }).length;
   
-  // Count campaigns with unbalanced budget
-  const unbalancedCampaigns = campaigns.length - balancedCampaigns;
+  // Count campaigns with unbalanced budget for the selected client
+  const unbalancedCampaigns = filteredCampaigns.length - balancedCampaigns;
 
   return (
     <div className="w-full mb-8 space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Campaign Overview</h2>
+        <h2 className="text-2xl font-bold">Aperçu des Campagnes</h2>
         <div className="flex gap-2">
           <Button variant="outline" className="hidden sm:flex">
             <BarChart3 className="mr-2 h-4 w-4" />
-            View as Chart
+            Voir en Graphique
           </Button>
           <Button variant="outline" className="hidden sm:flex">
             <BarChart2 className="mr-2 h-4 w-4" />
-            View as Calendar
+            Voir en Calendrier
           </Button>
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
+            <CardTitle className="text-sm font-medium">Budget Total</CardTitle>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -64,13 +65,13 @@ export function CampaignHeader() {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalBudget)}</div>
             <p className="text-xs text-muted-foreground">
-              Across {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}
+              Réparti sur {filteredCampaigns.length} campagne{filteredCampaigns.length !== 1 ? 's' : ''}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Budget Allocated</CardTitle>
+            <CardTitle className="text-sm font-medium">Budget Alloué</CardTitle>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -96,35 +97,35 @@ export function CampaignHeader() {
               />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              {percentageAllocated.toFixed(1)}% of total budget
+              {percentageAllocated.toFixed(1)}% du budget total
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Balanced Campaigns</CardTitle>
+            <CardTitle className="text-sm font-medium">Campagnes Équilibrées</CardTitle>
             <CheckSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{balancedCampaigns}</div>
             <p className="text-xs text-muted-foreground">
-              {balancedCampaigns > 0 && campaigns.length > 0 
-                ? `${((balancedCampaigns / campaigns.length) * 100).toFixed(1)}% of campaigns`
-                : 'No campaigns yet'}
+              {balancedCampaigns > 0 && filteredCampaigns.length > 0 
+                ? `${((balancedCampaigns / filteredCampaigns.length) * 100).toFixed(1)}% des campagnes`
+                : 'Pas de campagnes'}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Budget Alerts</CardTitle>
+            <CardTitle className="text-sm font-medium">Alertes Budget</CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{unbalancedCampaigns}</div>
             <p className="text-xs text-muted-foreground">
               {unbalancedCampaigns > 0 
-                ? `Campaigns needing attention`
-                : 'All campaigns balanced'}
+                ? `Campagnes nécessitant attention`
+                : 'Toutes les campagnes sont équilibrées'}
             </p>
           </CardContent>
         </Card>
