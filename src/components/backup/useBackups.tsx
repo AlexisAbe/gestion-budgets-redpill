@@ -28,6 +28,7 @@ export function useBackups() {
 
   const handleLoadBackups = async () => {
     setLoading(true);
+    // The loadBackups function now accepts a more flexible session type
     const { data, error } = await loadBackups(session);
     if (!error) {
       setBackups(data);
@@ -37,6 +38,7 @@ export function useBackups() {
 
   const handleCreateManualBackup = async () => {
     setCreating(true);
+    // The createManualBackup function now accepts a more flexible session type
     const { success } = await createManualBackup(session);
     if (success) {
       // Reload backups after creating a new one

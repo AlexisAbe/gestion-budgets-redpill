@@ -2,9 +2,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { BackupRecord } from '../types';
-import { Session } from '@supabase/supabase-js';
 
-export const loadBackups = async (session: Session | null) => {
+// Updated to accept a more generic session type
+export const loadBackups = async (session: { access_token?: string } | null) => {
   if (!session?.access_token) {
     toast({
       variant: "destructive",
@@ -36,7 +36,8 @@ export const loadBackups = async (session: Session | null) => {
   }
 };
 
-export const createManualBackup = async (session: Session | null) => {
+// Updated to accept a more generic session type
+export const createManualBackup = async (session: { access_token?: string } | null) => {
   if (!session?.access_token) {
     toast({
       variant: "destructive",
