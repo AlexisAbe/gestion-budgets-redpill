@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { BackupRecord } from './types';
 import { useCampaignStore } from '@/store/campaignStore';
 import { useClientStore } from '@/store/clientStore';
@@ -22,9 +22,18 @@ export function useBackups() {
   const loadBackups = async () => {
     setLoading(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token || '';
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
+      if (sessionError) {
+        throw new Error('Failed to get session: ' + sessionError.message);
+      }
+      
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+      
+      // API call to get campaign backups
       const response = await fetch(`https://wmclujwtwuzscfqbzfxf.supabase.co/rest/v1/rpc/get_campaign_backups`, {
         method: 'POST',
         headers: {
@@ -43,33 +52,67 @@ export function useBackups() {
       setBackups(data as BackupRecord[]);
     } catch (error) {
       console.error('Error loading backups:', error);
-      toast.error('Failed to load backups');
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Échec du chargement des sauvegardes"
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const createManualBackup = async () => {
-    toast.loading('Creating backup...');
     try {
+      // Get the session token first
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        throw new Error('Failed to get session: ' + sessionError.message);
+      }
+      
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+      
+      toast({
+        title: "Création en cours",
+        description: "Création de la sauvegarde en cours...",
+      });
+      
+      // Call the edge function to create a backup
       const response = await fetch('https://wmclujwtwuzscfqbzfxf.supabase.co/functions/v1/backup-campaigns', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ type: 'manual' })
       });
 
+      const responseData = await response.json();
+      
       if (!response.ok) {
-        throw new Error('Failed to create backup');
+        console.error('Backup function error:', responseData);
+        throw new Error(responseData.error || 'Failed to create backup');
       }
 
-      toast.success('Backup created successfully');
+      toast({
+        variant: "success",
+        title: "Succès",
+        description: "Sauvegarde créée avec succès"
+      });
+      
+      // Reload backups after creating a new one
       await loadBackups();
     } catch (error) {
       console.error('Error creating backup:', error);
-      toast.error('Failed to create backup');
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: `Échec de la création de sauvegarde: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+      });
     }
   };
 
@@ -81,7 +124,11 @@ export function useBackups() {
   const restoreFromBackup = async (restoreForCurrentClientOnly: boolean = false) => {
     if (!selectedBackup) return;
     
-    toast.loading('Restoring data from backup...');
+    toast({
+      title: "Restauration en cours",
+      description: "Restauration des données depuis la sauvegarde..."
+    });
+    
     try {
       // Clear existing store data
       resetStore();
@@ -122,11 +169,19 @@ export function useBackups() {
       // Refresh campaign data
       await fetchCampaigns();
       
-      toast.success('Data restored successfully');
+      toast({
+        variant: "success",
+        title: "Succès",
+        description: "Données restaurées avec succès"
+      });
       setRestoreDialogOpen(false);
     } catch (error) {
       console.error('Error restoring from backup:', error);
-      toast.error('Failed to restore data');
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: `Échec de la restauration des données: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+      });
     }
   };
 

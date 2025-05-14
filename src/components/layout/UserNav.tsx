@@ -17,7 +17,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { BackupManager } from '@/components/backup/BackupManager';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Archive } from "lucide-react";
 
 export function UserNav() {
@@ -76,6 +76,7 @@ export function UserNav() {
       
       <Dialog open={showBackups} onOpenChange={setShowBackups}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogTitle>Gestionnaire de sauvegardes</DialogTitle>
           <BackupManager />
         </DialogContent>
       </Dialog>

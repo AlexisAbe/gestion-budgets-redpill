@@ -27,7 +27,11 @@ export function BackupManager() {
             <Database className="h-5 w-5" />
             Gestionnaire de sauvegardes
           </span>
-          <Button onClick={createManualBackup} disabled={loading}>
+          <Button 
+            onClick={createManualBackup} 
+            disabled={loading}
+            className="bg-green-500 hover:bg-green-600"
+          >
             Créer une sauvegarde manuelle
           </Button>
         </CardTitle>
