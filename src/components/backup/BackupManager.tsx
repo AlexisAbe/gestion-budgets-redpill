@@ -36,13 +36,26 @@ export function BackupManager() {
   const loadBackups = async () => {
     setLoading(true);
     try {
-      // Use the raw REST API approach to avoid TypeScript limitations with RPC calls
-      const { data, error } = await supabase
-        .rpc('get_campaign_backups', {}) // Empty object for parameters to avoid type errors
-        .limit(50); // Limit to the last 50 backups
-        
-      if (error) throw error;
-      if (data) setBackups(data as unknown as BackupRecord[]);
+      // Use a different approach that avoids the type error by using fetch directly
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token || '';
+      
+      const response = await fetch(`https://wmclujwtwuzscfqbzfxf.supabase.co/rest/v1/rpc/get_campaign_backups`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtY2x1and0d3V6c2NmcWJ6ZnhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMjc0NTYsImV4cCI6MjA2MjcwMzQ1Nn0.x7ZXita8X6zfYNbEc29Hd3ZhSxXRaqBlqUyduedUK7c'
+        },
+        body: JSON.stringify({})
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch backups');
+      }
+      
+      const data = await response.json();
+      setBackups(data as BackupRecord[]);
     } catch (error) {
       console.error('Error loading backups:', error);
       toast.error('Failed to load backups');
