@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { MoreVertical, BarChart, Database, Trash2, Edit } from 'lucide-react';
+import { MoreVertical, BarChart, Database, Trash2, Edit, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -53,7 +53,17 @@ export function CampaignActions({
   }
   
   return (
-    <div className="flex justify-end">
+    <div className="flex justify-end items-center gap-1">
+      {/* Nouveau bouton pour afficher/masquer les ensembles de publicité */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onToggleAdSets}
+        title={showAdSets ? "Masquer les détails" : "Afficher les détails"}
+      >
+        {showAdSets ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </Button>
+      
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm">
