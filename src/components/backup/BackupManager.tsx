@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Database } from 'lucide-react';
+import { Database, Loader2 } from 'lucide-react';
 import { BackupList } from './BackupList';
 import { RestoreDialog } from './RestoreDialog';
 import { useBackups } from './useBackups';
@@ -11,6 +11,7 @@ export function BackupManager() {
   const {
     backups,
     loading,
+    creating,
     selectedBackup,
     restoreDialogOpen,
     setRestoreDialogOpen,
@@ -29,10 +30,17 @@ export function BackupManager() {
           </span>
           <Button 
             onClick={createManualBackup} 
-            disabled={loading}
+            disabled={loading || creating}
             className="bg-green-500 hover:bg-green-600"
           >
-            Créer une sauvegarde manuelle
+            {creating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Création...
+              </>
+            ) : (
+              'Créer une sauvegarde manuelle'
+            )}
           </Button>
         </CardTitle>
         <CardDescription>
