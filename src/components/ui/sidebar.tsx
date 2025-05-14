@@ -5,7 +5,6 @@ import {
   Plus,
   Settings,
   Users,
-  Archive,
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
 
@@ -26,7 +25,6 @@ import {
 } from "@/components/ui/tabs"
 import { useClientStore } from "@/store/clientStore"
 import { ClientSelector } from "@/components/layout/ClientSelector"
-import { BackupManager } from '@/components/backup/BackupManager';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLElement> {}
 
@@ -70,10 +68,6 @@ export function Sidebar({ className, ...props }: SidebarProps) {
                   <Users className="w-4 h-4 mr-2" aria-hidden="true" />
                   Clients
                 </TabsTrigger>
-                <TabsTrigger value="backups" className="relative">
-                  <Archive className="w-4 h-4 mr-2" aria-hidden="true" />
-                  Backups
-                </TabsTrigger>
                 <TabsTrigger value="settings" className="relative">
                   <Settings className="w-4 h-4 mr-2" aria-hidden="true" />
                   Settings
@@ -100,11 +94,6 @@ export function Sidebar({ className, ...props }: SidebarProps) {
           <TabsContent value="clients" className="h-full flex flex-col">
             <div className="container py-6 h-full overflow-auto">
               <p>Client Management</p>
-            </div>
-          </TabsContent>
-          <TabsContent value="backups" className="h-full flex flex-col">
-            <div className="container py-6 h-full overflow-auto">
-              <BackupManager />
             </div>
           </TabsContent>
           <TabsContent value="settings" className="h-full flex flex-col">
