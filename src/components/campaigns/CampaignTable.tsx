@@ -10,6 +10,7 @@ import { WeekRangeFilter } from '../filters/WeekRangeFilter';
 import { MediaChannel } from '@/types/campaign';
 import { useClientStore } from '@/store/clientStore';
 import { ScrollArea } from '../ui/scroll-area';
+import { formatDayMonth } from '@/utils/dateUtils';
 
 export function CampaignTable() {
   const { campaigns, filteredCampaigns, weeks } = useCampaignStore();
@@ -90,7 +91,12 @@ export function CampaignTable() {
                 {/* Weekly headers - filtered by selected range */}
                 {visibleWeeks.map(week => (
                   <th key={week.weekLabel} className="week-header">
-                    {week.weekLabel}
+                    <div className="flex flex-col items-center">
+                      <span>{week.weekLabel}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDayMonth(week.startDate)}
+                      </span>
+                    </div>
                   </th>
                 ))}
               </tr>

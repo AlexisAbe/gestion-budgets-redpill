@@ -1,4 +1,3 @@
-
 /**
  * Generates an array of weekly dates for a given year
  * @param year The year to generate weeks for
@@ -54,6 +53,17 @@ export function formatDate(dateString: string): string {
     month: '2-digit',
     year: 'numeric'
   });
+}
+
+/**
+ * Format a date string to show only day and month (DD MMM)
+ */
+export function formatDayMonth(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long'
+  }).split(' ').slice(0, 2).join(' ');
 }
 
 /**
