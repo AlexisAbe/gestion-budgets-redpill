@@ -24,7 +24,7 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
             <span className="text-sm text-muted-foreground">Chargement des sous-ensembles...</span>
           </div>
         </td>
-        {/* Empty cells for weekly columns */}
+        {/* Empty cells for weekly columns - just for visible weeks */}
         {weeks.map(week => (
           <td key={`loading-${campaign.id}-${week.weekLabel}`} className="bg-muted/5"></td>
         ))}
@@ -40,7 +40,7 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
             Pas de sous-ensembles pour cette campagne
           </div>
         </td>
-        {/* Empty cells for weekly columns */}
+        {/* Empty cells for weekly columns - just for visible weeks */}
         {weeks.map(week => (
           <td key={`empty-${campaign.id}-${week.weekLabel}`} className="bg-muted/5"></td>
         ))}
@@ -68,7 +68,7 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
             {formatCurrency(campaign.totalBudget * adSet.budgetPercentage / 100)}
           </td>
           
-          {/* Weekly budget cells for each ad set */}
+          {/* Weekly budget cells for each ad set - just for visible weeks */}
           {weeks.map((week) => {
             const isInCampaign = campaignWeeks.includes(week.weekNumber);
             const weekLabel = week.weekLabel;

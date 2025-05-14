@@ -15,7 +15,7 @@ export function BudgetChart({ campaign, weeks }: BudgetChartProps) {
   // Get campaign weeks (which weeks this campaign runs in)
   const campaignWeekNumbers = getCampaignWeeks(campaign.startDate, campaign.durationDays, weeks);
   
-  // Filter to only weeks within the campaign duration
+  // Filter to only weeks within the campaign duration AND in the visible weeks array
   const campaignWeeksData = weeks
     .filter(week => campaignWeekNumbers.includes(week.weekNumber))
     .map(week => {

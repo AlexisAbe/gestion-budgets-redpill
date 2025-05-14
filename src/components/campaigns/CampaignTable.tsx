@@ -6,6 +6,7 @@ import { BudgetChart } from '../charts/BudgetChart';
 import { AddCampaignForm } from './AddCampaignForm';
 import { ExportTools } from '../export/ExportTools';
 import { ChannelFilter } from '../filters/ChannelFilter';
+import { WeekRangeFilter } from '../filters/WeekRangeFilter';
 import { MediaChannel } from '@/types/campaign';
 import { useClientStore } from '@/store/clientStore';
 import { ScrollArea } from '../ui/scroll-area';
@@ -16,6 +17,7 @@ export function CampaignTable() {
   const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({});
   const [inlineAdSets, setInlineAdSets] = useState<Record<string, boolean>>({});
   const [selectedChannels, setSelectedChannels] = useState<MediaChannel[]>([]);
+  const [weekRange, setWeekRange] = useState<[number, number]>([1, weeks.length]);
   
   const toggleChart = (campaignId: string) => {
     setExpandedCampaigns(prev => ({
@@ -43,12 +45,25 @@ export function CampaignTable() {
     
     return result;
   }, [filteredCampaigns, selectedChannels]);
+  
+  // Filter weeks based on selected range
+  const visibleWeeks = useMemo(() => {
+    return weeks.filter((_, index) => {
+      const weekNumber = index + 1;
+      return weekNumber >= weekRange[0] && weekNumber <= weekRange[1];
+    });
+  }, [weeks, weekRange]);
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Campaigns</h2>
         <div className="flex items-center gap-2">
+          <WeekRangeFilter 
+            allWeeks={weeks}
+            selectedWeekRange={weekRange}
+            onChange={setWeekRange}
+          />
           <ChannelFilter 
             selectedChannels={selectedChannels}
             onChange={setSelectedChannels}
@@ -72,8 +87,8 @@ export function CampaignTable() {
                 <th className="fixed-column-header">Days</th>
                 <th className="fixed-column-header">Actions</th>
                 
-                {/* Weekly headers */}
-                {weeks.map(week => (
+                {/* Weekly headers - filtered by selected range */}
+                {visibleWeeks.map(week => (
                   <th key={week.weekLabel} className="week-header">
                     {week.weekLabel}
                   </th>
@@ -83,7 +98,7 @@ export function CampaignTable() {
             <tbody className="divide-y divide-border bg-card text-foreground">
               {displayedCampaigns.length === 0 && (
                 <tr>
-                  <td colSpan={8 + weeks.length} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={8 + visibleWeeks.length} className="p-8 text-center text-muted-foreground">
                     {campaigns.length === 0 
                       ? "No campaigns yet. Add a campaign to get started."
                       : selectedClientId 
@@ -96,7 +111,7 @@ export function CampaignTable() {
                 <React.Fragment key={campaign.id}>
                   <CampaignRow 
                     campaign={campaign} 
-                    weeks={weeks}
+                    weeks={visibleWeeks}
                     onToggleChart={toggleChart}
                     showChart={!!expandedCampaigns[campaign.id]}
                     showInlineAdSets={!!inlineAdSets[campaign.id]}

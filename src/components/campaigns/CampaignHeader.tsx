@@ -57,7 +57,7 @@ export function CampaignHeader({
         {/* This will be replaced by the CampaignActions component */}
       </td>
       
-      {/* Weekly columns */}
+      {/* Weekly columns - only for visible weeks */}
       {weeks.map((week) => {
         const isInCampaign = campaignWeeks.includes(week.weekNumber);
         const weekLabel = week.weekLabel;
