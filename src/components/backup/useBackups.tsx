@@ -39,6 +39,7 @@ export function useBackups() {
 
     setLoading(true);
     try {
+      console.log("Chargement des sauvegardes avec token:", session.access_token);
       // API call to get campaign backups
       const response = await fetch(`https://wmclujwtwuzscfqbzfxf.supabase.co/rest/v1/rpc/get_campaign_backups`, {
         method: 'POST',
@@ -51,10 +52,13 @@ export function useBackups() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch backups');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Fetch error response:', response.status, errorData);
+        throw new Error(`Échec de la requête: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
+      console.log("Sauvegardes chargées:", data);
       setBackups(data as BackupRecord[]);
     } catch (error) {
       console.error('Error loading backups:', error);
@@ -86,6 +90,8 @@ export function useBackups() {
         description: "Création de la sauvegarde en cours...",
       });
       
+      console.log("Création d'une sauvegarde manuelle avec token:", session.access_token);
+      
       // Call the edge function to create a backup
       const response = await fetch('https://wmclujwtwuzscfqbzfxf.supabase.co/functions/v1/backup-campaigns', {
         method: 'POST',
@@ -96,13 +102,14 @@ export function useBackups() {
         body: JSON.stringify({ type: 'manual' })
       });
 
-      if (!response.ok) {
-        const responseData = await response.json();
-        console.error('Backup function error:', responseData);
-        throw new Error(responseData.error || 'Failed to create backup');
-      }
+      console.log("Réponse status:", response.status);
       
       const responseData = await response.json();
+      console.log("Réponse donnée:", responseData);
+      
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Failed to create backup');
+      }
       
       toast({
         variant: "success",
