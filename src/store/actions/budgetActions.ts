@@ -1,6 +1,6 @@
 
 import { CampaignState } from '../types/campaignStoreTypes';
-import { updateWeeklyBudgetService, autoDistributeBudgetService, fetchCampaignsService, updateWeeklyNoteService } from '../services/campaign';
+import { updateWeeklyBudgetService, autoDistributeBudgetService, fetchCampaignsService } from '../services/campaign';
 import { useClientStore } from '../clientStore';
 
 export const createBudgetActions = (set: any, get: () => CampaignState) => ({
@@ -36,42 +36,6 @@ export const createBudgetActions = (set: any, get: () => CampaignState) => ({
       }));
     } catch (error) {
       console.error('Error updating weekly budget:', error);
-      set({ error: error instanceof Error ? error.message : 'An unknown error occurred' });
-    }
-  },
-  
-  updateWeeklyNote: async (campaignId: string, weekLabel: string, note: string) => {
-    try {
-      await updateWeeklyNoteService(campaignId, weekLabel, note);
-      
-      set((state: CampaignState) => ({
-        campaigns: state.campaigns.map(campaign => {
-          if (campaign.id === campaignId) {
-            return {
-              ...campaign,
-              weeklyNotes: {
-                ...(campaign.weeklyNotes || {}),
-                [weekLabel]: note,
-              },
-            };
-          }
-          return campaign;
-        }),
-        filteredCampaigns: state.filteredCampaigns.map(campaign => {
-          if (campaign.id === campaignId) {
-            return {
-              ...campaign,
-              weeklyNotes: {
-                ...(campaign.weeklyNotes || {}),
-                [weekLabel]: note,
-              },
-            };
-          }
-          return campaign;
-        }),
-      }));
-    } catch (error) {
-      console.error('Error updating weekly note:', error);
       set({ error: error instanceof Error ? error.message : 'An unknown error occurred' });
     }
   },

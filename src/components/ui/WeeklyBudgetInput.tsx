@@ -2,16 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { useCampaignStore } from '@/store/campaignStore';
 import { formatCurrency } from '@/utils/budgetUtils';
-import { WeeklyBudgetNote } from './WeeklyBudgetNote';
 
 interface WeeklyBudgetInputProps {
   campaignId: string;
   weekLabel: string;
   plannedBudget: number;
-  weeklyNote?: string;
 }
 
-export function WeeklyBudgetInput({ campaignId, weekLabel, plannedBudget, weeklyNote }: WeeklyBudgetInputProps) {
+export function WeeklyBudgetInput({ campaignId, weekLabel, plannedBudget }: WeeklyBudgetInputProps) {
   const { updateWeeklyBudget } = useCampaignStore();
   const [inputValue, setInputValue] = useState(plannedBudget ? plannedBudget.toString() : '');
   const [isEditing, setIsEditing] = useState(false);
@@ -50,35 +48,26 @@ export function WeeklyBudgetInput({ campaignId, weekLabel, plannedBudget, weekly
 
   return (
     <div className="budget-cell relative group">
-      <div className="flex items-center">
-        {showFormatted && plannedBudget > 0 ? (
-          <div 
-            onClick={() => setIsEditing(true)}
-            className="w-full h-full p-1 cursor-pointer text-center flex items-center justify-center hover:bg-primary/5 rounded"
-          >
-            {formatCurrency(plannedBudget)}
-          </div>
-        ) : (
-          <input
-            type="number"
-            min="0"
-            className="budget-cell-input"
-            value={inputValue}
-            onChange={handleChange}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            autoFocus={isEditing}
-          />
-        )}
-        
-        {/* Note button */}
-        <WeeklyBudgetNote 
-          entityId={campaignId} 
-          weekLabel={weekLabel} 
-          existingNote={weeklyNote} 
+      {showFormatted && plannedBudget > 0 ? (
+        <div 
+          onClick={() => setIsEditing(true)}
+          className="w-full h-full p-1 cursor-pointer text-center flex items-center justify-center hover:bg-primary/5 rounded"
+        >
+          {formatCurrency(plannedBudget)}
+        </div>
+      ) : (
+        <input
+          type="number"
+          min="0"
+          className="budget-cell-input"
+          value={inputValue}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          autoFocus={isEditing}
         />
-      </div>
+      )}
     </div>
   );
 }

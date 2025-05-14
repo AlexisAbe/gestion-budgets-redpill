@@ -1,189 +1,221 @@
 
 import { AdSet } from '@/types/campaign';
 import { supabase } from '@/integrations/supabase/client';
+import { mapToAdSet, mapToSupabaseAdSet } from '@/utils/supabaseUtils';
 import { toast } from '@/hooks/use-toast';
 import { supabaseService } from '../base/supabaseService';
 
-export async function fetchAdSetsService(campaignId: string): Promise<AdSet[]> {
+export async function fetchAdSetsForCampaign(campaignId: string): Promise<AdSet[]> {
   try {
+    console.log('Fetching ad sets for campaign ID:', campaignId);
+    
     const { data, error } = await supabase
       .from('ad_sets')
       .select('*')
       .eq('campaign_id', campaignId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false });
     
     if (error) {
-      return supabaseService.handleError(error, 'Error fetching ad sets');
+      return supabaseService.handleError(error, 'Erreur lors de la récupération des sous-ensembles');
     }
     
-    if (!data) return [];
-    
-    return data.map(adSet => ({
-      id: adSet.id,
-      campaignId: adSet.campaign_id,
-      name: adSet.name,
-      budgetPercentage: adSet.budget_percentage,
-      description: adSet.description || undefined,
-      targetAudience: adSet.target_audience || undefined,
-      actualBudgets: adSet.actual_budgets ? adSet.actual_budgets as Record<string, number> : undefined,
-      // Add safe handling for weekly_notes which might not exist in database yet
-      weeklyNotes: adSet.weekly_notes ? adSet.weekly_notes as Record<string, string> : undefined,
-      createdAt: adSet.created_at,
-      updatedAt: adSet.updated_at
-    }));
+    const adSets = (data || []).map(item => mapToAdSet(item));
+    console.log('Ad sets fetched:', adSets.length);
+    return adSets;
   } catch (error) {
-    console.error('Error in fetchAdSetsService:', error);
-    throw error;
+    console.error('Error fetching ad sets:', error);
+    toast({
+      title: "Erreur",
+      description: `Erreur lors de la récupération des sous-ensembles: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+      variant: "destructive"
+    });
+    return [];
   }
 }
 
-export async function addAdSetService(adSet: Omit<AdSet, 'id' | 'createdAt' | 'updatedAt'>): Promise<AdSet> {
+export async function addAdSet(adSet: Omit<AdSet, "id" | "createdAt" | "updatedAt">): Promise<AdSet | null> {
   try {
+    console.log('Adding ad set:', adSet);
+    
+    const supabaseAdSet = mapToSupabaseAdSet(adSet);
+    
     const { data, error } = await supabase
       .from('ad_sets')
-      .insert({
-        campaign_id: adSet.campaignId,
-        name: adSet.name,
-        budget_percentage: adSet.budgetPercentage,
-        description: adSet.description || null,
-        target_audience: adSet.targetAudience || null,
-        weekly_notes: adSet.weeklyNotes || null // Add weekly_notes field
-      })
+      .insert(supabaseAdSet)
       .select()
       .single();
     
     if (error) {
-      return supabaseService.handleError(error, 'Error adding ad set');
+      return supabaseService.handleError(error, 'Erreur lors de l\'ajout du sous-ensemble');
     }
     
     if (!data) {
-      throw new Error('No data returned when adding ad set');
+      throw new Error('Aucune donnée retournée lors de la création du sous-ensemble');
     }
     
-    toast.success(`Ad set "${adSet.name}" added successfully`);
+    const newAdSet = mapToAdSet(data);
+    console.log('Ad set added successfully:', newAdSet);
     
-    return {
-      id: data.id,
-      campaignId: data.campaign_id,
-      name: data.name,
-      budgetPercentage: data.budget_percentage,
-      description: data.description || undefined,
-      targetAudience: data.target_audience || undefined,
-      // Safely handle data that might not exist yet in DB
-      actualBudgets: data.actual_budgets ? data.actual_budgets as Record<string, number> : undefined,
-      weeklyNotes: data.weekly_notes ? data.weekly_notes as Record<string, string> : undefined,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
-    };
+    toast({
+      title: "Succès",
+      description: `Sous-ensemble "${newAdSet.name}" ajouté avec succès`,
+    });
+    
+    return newAdSet;
   } catch (error) {
-    console.error('Error in addAdSetService:', error);
-    throw error;
+    console.error('Error adding ad set:', error);
+    toast({
+      title: "Erreur",
+      description: `Erreur lors de l'ajout du sous-ensemble: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+      variant: "destructive"
+    });
+    return null;
   }
 }
 
-export async function updateAdSetService(
-  adSetId: string,
-  updates: Partial<AdSet>
-): Promise<AdSet> {
+export async function updateAdSet(id: string, updates: Partial<AdSet>): Promise<AdSet | null> {
   try {
+    console.log('Updating ad set:', id, updates);
+    
+    // Convert to snake_case for Supabase
     const updateData: Record<string, any> = {};
     
-    if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.budgetPercentage !== undefined) updateData.budget_percentage = updates.budgetPercentage;
-    if (updates.description !== undefined) updateData.description = updates.description;
-    if (updates.targetAudience !== undefined) updateData.target_audience = updates.targetAudience;
-    if (updates.weeklyNotes !== undefined) updateData.weekly_notes = updates.weeklyNotes;
+    if ('name' in updates) updateData.name = updates.name;
+    if ('budgetPercentage' in updates) updateData.budget_percentage = updates.budgetPercentage;
+    if ('description' in updates) updateData.description = updates.description;
+    if ('targetAudience' in updates) updateData.target_audience = updates.targetAudience;
+    if ('actualBudgets' in updates) updateData.actual_budgets = updates.actualBudgets;
     
     const { data, error } = await supabase
       .from('ad_sets')
       .update(updateData)
-      .eq('id', adSetId)
+      .eq('id', id)
       .select()
       .single();
     
     if (error) {
-      return supabaseService.handleError(error, 'Error updating ad set');
+      return supabaseService.handleError(error, 'Erreur lors de la mise à jour du sous-ensemble');
     }
     
     if (!data) {
-      throw new Error('No data returned when updating ad set');
+      throw new Error('Aucune donnée retournée lors de la mise à jour du sous-ensemble');
     }
     
-    toast.success(`Ad set "${data.name}" updated successfully`);
+    const updatedAdSet = mapToAdSet(data);
+    console.log('Ad set updated successfully:', updatedAdSet);
     
-    return {
-      id: data.id,
-      campaignId: data.campaign_id,
-      name: data.name,
-      budgetPercentage: data.budget_percentage,
-      description: data.description || undefined,
-      targetAudience: data.target_audience || undefined,
-      actualBudgets: data.actual_budgets ? data.actual_budgets as Record<string, number> : undefined,
-      weeklyNotes: data.weekly_notes ? data.weekly_notes as Record<string, string> : undefined,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
-    };
+    toast({
+      title: "Succès",
+      description: `Sous-ensemble "${updatedAdSet.name}" mis à jour avec succès`,
+    });
+    
+    return updatedAdSet;
   } catch (error) {
-    console.error('Error in updateAdSetService:', error);
-    throw error;
+    console.error('Error updating ad set:', error);
+    toast({
+      title: "Erreur",
+      description: `Erreur lors de la mise à jour du sous-ensemble: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+      variant: "destructive"
+    });
+    return null;
   }
 }
 
-export async function deleteAdSetService(adSetId: string): Promise<void> {
+export async function deleteAdSet(id: string, name: string): Promise<boolean> {
   try {
+    console.log('Deleting ad set:', id);
+    
     const { error } = await supabase
       .from('ad_sets')
       .delete()
-      .eq('id', adSetId);
+      .eq('id', id);
     
     if (error) {
-      return supabaseService.handleError(error, 'Error deleting ad set');
+      return supabaseService.handleError(error, 'Erreur lors de la suppression du sous-ensemble');
     }
     
-    toast.success('Ad set deleted successfully');
+    console.log('Ad set deleted successfully:', id);
+    
+    toast({
+      title: "Succès",
+      description: `Sous-ensemble "${name}" supprimé avec succès`,
+    });
+    
+    return true;
   } catch (error) {
-    console.error('Error in deleteAdSetService:', error);
-    throw error;
+    console.error('Error deleting ad set:', error);
+    toast({
+      title: "Erreur",
+      description: `Erreur lors de la suppression du sous-ensemble: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+      variant: "destructive"
+    });
+    return false;
   }
 }
 
-export async function updateAdSetWeeklyNoteService(
-  adSetId: string,
-  weekLabel: string,
-  note: string
-): Promise<void> {
+export async function updateAdSetActualBudget(id: string, weekLabel: string, amount: number): Promise<boolean> {
   try {
-    // First, get the current ad set
-    const { data, error } = await supabase
+    // Get current ad set
+    const { data: adSetData, error: adSetError } = await supabase
       .from('ad_sets')
       .select('*')
-      .eq('id', adSetId)
+      .eq('id', id)
       .single();
     
-    if (error) {
-      return supabaseService.handleError(error, 'Erreur lors de la récupération de l\'ad set');
+    if (adSetError) {
+      return supabaseService.handleError(adSetError, 'Erreur lors de la récupération du sous-ensemble');
     }
     
-    // Get current notes or create empty object if it doesn't exist
-    const currentNotes = data.weekly_notes || {};
+    if (!adSetData) {
+      throw new Error('Sous-ensemble non trouvé');
+    }
     
-    // Update the notes for the specified week
-    const updatedWeeklyNotes = {
-      ...currentNotes,
-      [weekLabel]: note
+    // Ensure actual_budgets is an object by using a default empty object
+    const currentActualBudgets = adSetData.actual_budgets ? 
+      (typeof adSetData.actual_budgets === 'object' ? adSetData.actual_budgets : {}) : 
+      {};
+      
+    // Create updated object for actual budgets
+    const updatedActualBudgets = {
+      ...currentActualBudgets,
+      [weekLabel]: amount
     };
     
-    // Update in Supabase
+    // Save to database
     const { error: updateError } = await supabase
       .from('ad_sets')
-      .update({ weekly_notes: updatedWeeklyNotes })
-      .eq('id', adSetId);
+      .update({ actual_budgets: updatedActualBudgets })
+      .eq('id', id);
     
     if (updateError) {
-      return supabaseService.handleError(updateError, 'Erreur lors de la mise à jour de la note');
+      return supabaseService.handleError(updateError, 'Erreur lors de la mise à jour du budget réel');
     }
+    
+    console.log('Ad set actual budget updated successfully:', id, weekLabel, amount);
+    return true;
   } catch (error) {
-    console.error('Error updating ad set weekly note:', error);
-    throw error;
+    console.error('Error updating ad set actual budget:', error);
+    toast({
+      title: "Erreur",
+      description: `Erreur lors de la mise à jour du budget réel: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+      variant: "destructive"
+    });
+    return false;
+  }
+}
+
+export async function validateAdSetBudgets(campaignId: string): Promise<{ valid: boolean, total: number }> {
+  try {
+    const adSets = await fetchAdSetsForCampaign(campaignId);
+    
+    const totalPercentage = adSets.reduce((sum, adSet) => sum + adSet.budgetPercentage, 0);
+    
+    return {
+      valid: totalPercentage <= 100,
+      total: totalPercentage
+    };
+  } catch (error) {
+    console.error('Error validating ad set budgets:', error);
+    return { valid: false, total: 0 };
   }
 }
