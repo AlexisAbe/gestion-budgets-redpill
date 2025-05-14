@@ -25,8 +25,9 @@ export async function fetchAdSetsService(campaignId: string): Promise<AdSet[]> {
       budgetPercentage: adSet.budget_percentage,
       description: adSet.description || undefined,
       targetAudience: adSet.target_audience || undefined,
-      actualBudgets: adSet.actual_budgets || undefined,
-      weeklyNotes: adSet.weekly_notes || undefined,
+      actualBudgets: adSet.actual_budgets ? adSet.actual_budgets as Record<string, number> : undefined,
+      // Add safe handling for weekly_notes which might not exist in database yet
+      weeklyNotes: adSet.weekly_notes ? adSet.weekly_notes as Record<string, string> : undefined,
       createdAt: adSet.created_at,
       updatedAt: adSet.updated_at
     }));
@@ -45,7 +46,8 @@ export async function addAdSetService(adSet: Omit<AdSet, 'id' | 'createdAt' | 'u
         name: adSet.name,
         budget_percentage: adSet.budgetPercentage,
         description: adSet.description || null,
-        target_audience: adSet.targetAudience || null
+        target_audience: adSet.targetAudience || null,
+        weekly_notes: adSet.weeklyNotes || null // Add weekly_notes field
       })
       .select()
       .single();
@@ -67,6 +69,9 @@ export async function addAdSetService(adSet: Omit<AdSet, 'id' | 'createdAt' | 'u
       budgetPercentage: data.budget_percentage,
       description: data.description || undefined,
       targetAudience: data.target_audience || undefined,
+      // Safely handle data that might not exist yet in DB
+      actualBudgets: data.actual_budgets ? data.actual_budgets as Record<string, number> : undefined,
+      weeklyNotes: data.weekly_notes ? data.weekly_notes as Record<string, string> : undefined,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };
@@ -87,6 +92,7 @@ export async function updateAdSetService(
     if (updates.budgetPercentage !== undefined) updateData.budget_percentage = updates.budgetPercentage;
     if (updates.description !== undefined) updateData.description = updates.description;
     if (updates.targetAudience !== undefined) updateData.target_audience = updates.targetAudience;
+    if (updates.weeklyNotes !== undefined) updateData.weekly_notes = updates.weeklyNotes;
     
     const { data, error } = await supabase
       .from('ad_sets')
@@ -112,8 +118,8 @@ export async function updateAdSetService(
       budgetPercentage: data.budget_percentage,
       description: data.description || undefined,
       targetAudience: data.target_audience || undefined,
-      actualBudgets: data.actual_budgets || undefined,
-      weeklyNotes: data.weekly_notes || undefined,
+      actualBudgets: data.actual_budgets ? data.actual_budgets as Record<string, number> : undefined,
+      weeklyNotes: data.weekly_notes ? data.weekly_notes as Record<string, string> : undefined,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };

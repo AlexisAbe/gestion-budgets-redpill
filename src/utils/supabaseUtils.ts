@@ -27,22 +27,39 @@ type SupabaseAdSet = {
   description: string | null;
   target_audience: string | null;
   actual_budgets?: Json;
+  weekly_notes?: Json;  // Add weekly_notes field to match the database schema
   created_at: string;
   updated_at: string;
 };
 
 export function mapToCampaign(supabaseCampaign: SupabaseCampaign): Campaign {
-  // Extract actual budgets from weekly_budgets if they exist
+  // Extract actual budgets and weekly notes from weekly_budgets if they exist
   const weeklyBudgets = supabaseCampaign.weekly_budgets as Record<string, any>;
   let actualBudgets: Record<string, number> = {};
+  let weeklyNotes: Record<string, string> = {};
   
-  // Check if weekly_budgets contains the special key for actual budgets
-  if (weeklyBudgets && weeklyBudgets.__actual_budgets__) {
-    actualBudgets = weeklyBudgets.__actual_budgets__ as Record<string, number>;
+  // Handle weekly_budgets structure: it could contain nested fields like __actual_budgets__ and __weekly_notes__
+  if (weeklyBudgets && typeof weeklyBudgets === 'object') {
+    // Extract actual budgets if they exist
+    if (weeklyBudgets.__actual_budgets__) {
+      actualBudgets = weeklyBudgets.__actual_budgets__ as Record<string, number>;
+    }
     
-    // Create a clean copy of weekly budgets without the actual budgets
-    const cleanWeeklyBudgets = {...weeklyBudgets};
-    delete cleanWeeklyBudgets.__actual_budgets__;
+    // Extract weekly notes if they exist
+    if (weeklyBudgets.__weekly_notes__) {
+      weeklyNotes = weeklyBudgets.__weekly_notes__ as Record<string, string>;
+    }
+    
+    // Create a clean copy of weekly budgets without the special keys
+    const cleanWeeklyBudgets = { ...weeklyBudgets };
+    
+    if ('__actual_budgets__' in cleanWeeklyBudgets) {
+      delete cleanWeeklyBudgets.__actual_budgets__;
+    }
+    
+    if ('__weekly_notes__' in cleanWeeklyBudgets) {
+      delete cleanWeeklyBudgets.__weekly_notes__;
+    }
     
     return {
       id: supabaseCampaign.id,
@@ -56,6 +73,7 @@ export function mapToCampaign(supabaseCampaign: SupabaseCampaign): Campaign {
       durationDays: supabaseCampaign.duration_days,
       weeklyBudgets: cleanWeeklyBudgets as Record<string, number>,
       actualBudgets: actualBudgets,
+      weeklyNotes: weeklyNotes, // Add weekly notes to the campaign object
       createdAt: supabaseCampaign.created_at,
       updatedAt: supabaseCampaign.updated_at
     };
@@ -72,19 +90,24 @@ export function mapToCampaign(supabaseCampaign: SupabaseCampaign): Campaign {
     startDate: supabaseCampaign.start_date,
     totalBudget: supabaseCampaign.total_budget,
     durationDays: supabaseCampaign.duration_days,
-    weeklyBudgets: supabaseCampaign.weekly_budgets as Record<string, number>,
+    weeklyBudgets: weeklyBudgets as Record<string, number>,
     actualBudgets: {},
+    weeklyNotes: {}, // Add empty weekly notes
     createdAt: supabaseCampaign.created_at,
     updatedAt: supabaseCampaign.updated_at
   };
 }
 
 export function mapToSupabaseCampaign(campaign: Omit<Campaign, "id" | "createdAt" | "updatedAt">): Omit<SupabaseCampaign, "id" | "created_at" | "updated_at" | "created_by"> {
-  // If actualBudgets exists, include them in the weekly_budgets field
-  let weeklyBudgets: Record<string, any> = {...campaign.weeklyBudgets};
+  // If actualBudgets or weeklyNotes exist, include them in the weekly_budgets field
+  let weeklyBudgets: Record<string, any> = { ...campaign.weeklyBudgets };
   
   if (campaign.actualBudgets && Object.keys(campaign.actualBudgets).length > 0) {
     weeklyBudgets.__actual_budgets__ = campaign.actualBudgets;
+  }
+  
+  if (campaign.weeklyNotes && Object.keys(campaign.weeklyNotes).length > 0) {
+    weeklyBudgets.__weekly_notes__ = campaign.weeklyNotes;
   }
   
   return {
@@ -109,6 +132,7 @@ export function mapToAdSet(supabaseAdSet: SupabaseAdSet): AdSet {
     description: supabaseAdSet.description || undefined,
     targetAudience: supabaseAdSet.target_audience || undefined,
     actualBudgets: supabaseAdSet.actual_budgets as Record<string, number> | undefined,
+    weeklyNotes: supabaseAdSet.weekly_notes as Record<string, string> | undefined, // Add weekly notes mapping
     createdAt: supabaseAdSet.created_at,
     updatedAt: supabaseAdSet.updated_at
   };
@@ -121,7 +145,8 @@ export function mapToSupabaseAdSet(adSet: Omit<AdSet, "id" | "createdAt" | "upda
     budget_percentage: adSet.budgetPercentage,
     description: adSet.description || null,
     target_audience: adSet.targetAudience || null,
-    actual_budgets: adSet.actualBudgets || {}
+    actual_budgets: adSet.actualBudgets || {},
+    weekly_notes: adSet.weeklyNotes || {}  // Include weekly_notes in the mapped object
   };
 }
 

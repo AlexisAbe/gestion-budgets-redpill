@@ -1,3 +1,4 @@
+
 import { Campaign } from '@/types/campaign';
 import { WeeklyView } from '@/utils/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
@@ -140,11 +141,18 @@ export async function updateWeeklyNoteService(
       [weekLabel]: note
     };
     
+    // Need to update the JSON structure in weekly_budgets to include weekly_notes
+    // Create a custom weekly_budgets object with the weekly_notes field
+    const weeklyBudgetsWithNotes = {
+      ...data.weekly_budgets,
+      __weekly_notes__: updatedWeeklyNotes
+    };
+    
     // Update in Supabase
     const { error: updateError } = await supabase
       .from('campaigns')
       .update({ 
-        weekly_notes: updatedWeeklyNotes 
+        weekly_budgets: weeklyBudgetsWithNotes 
       })
       .eq('id', campaignId);
     
@@ -192,7 +200,7 @@ export async function updateAdSetWeeklyNoteService(
       [weekLabel]: note
     };
     
-    // Update in Supabase
+    // Update in Supabase - use a custom field for the update
     const { error: updateError } = await supabase
       .from('ad_sets')
       .update({ 
