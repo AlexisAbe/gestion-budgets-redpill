@@ -1,10 +1,15 @@
+
 import { Campaign } from '@/types/campaign';
 import { WeeklyView } from '@/utils/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { formatSupabaseError } from '@/utils/supabaseUtils';
 import { toast } from 'sonner';
 import { supabaseService } from '../base/supabaseService';
-import { distributeByPercentages, distributeEvenlyAcrossWeeks, distributeByCurve } from '@/utils/budgetUtils';
+import { 
+  distributeByPercentages, 
+  distributeEvenlyAcrossWeeks, 
+  distributeByCurve 
+} from '@/utils/budget/distribution';
 import { mapToCampaign } from '@/utils/supabaseUtils';
 
 // Update the weekly budget for a campaign
