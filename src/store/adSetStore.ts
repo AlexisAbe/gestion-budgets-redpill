@@ -27,7 +27,7 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
   isLoading: false,
   
   fetchAdSets: async (campaignId: string) => {
-    set(state => ({ isLoading: true }));
+    set({ isLoading: true });
     try {
       const adSets = await fetchAdSetsForCampaign(campaignId);
       console.log('Ad sets fetched:', adSets.length);
@@ -36,7 +36,8 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
         adSets: {
           ...state.adSets,
           [campaignId]: adSets
-        }
+        },
+        isLoading: false
       }));
       return adSets;
     } catch (error) {
@@ -46,9 +47,8 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
         description: "Impossible de récupérer les sous-ensembles",
         variant: "destructive"
       });
-      return [];
-    } finally {
       set({ isLoading: false });
+      return [];
     }
   },
   
@@ -65,7 +65,8 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
               ...(state.adSets[campaignId] || []),
               newAdSet
             ]
-          }
+          },
+          isLoading: false
         }));
         toast({
           title: "Succès",
@@ -80,9 +81,8 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
         description: "Impossible d'ajouter le sous-ensemble",
         variant: "destructive"
       });
-      return null;
-    } finally {
       set({ isLoading: false });
+      return null;
     }
   },
   
@@ -98,7 +98,8 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
             [campaignId]: state.adSets[campaignId].map(adSet => 
               adSet.id === id ? updatedAdSet : adSet
             )
-          }
+          },
+          isLoading: false
         }));
         toast({
           title: "Succès",
@@ -113,9 +114,8 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
         description: "Impossible de mettre à jour le sous-ensemble",
         variant: "destructive"
       });
-      return null;
-    } finally {
       set({ isLoading: false });
+      return null;
     }
   },
   
@@ -124,7 +124,6 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
     try {
       const success = await deleteAdSet(id, name);
       if (success) {
-        // Find which campaign this ad set belongs to
         let campaignId: string | null = null;
         for (const [cId, adSets] of Object.entries(get().adSets)) {
           if (adSets.some(adSet => adSet.id === id)) {
@@ -138,7 +137,8 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
             adSets: {
               ...state.adSets,
               [campaignId!]: state.adSets[campaignId!].filter(adSet => adSet.id !== id)
-            }
+            },
+            isLoading: false
           }));
           toast({
             title: "Succès",
@@ -154,9 +154,8 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
         description: "Impossible de supprimer le sous-ensemble",
         variant: "destructive"
       });
-      return false;
-    } finally {
       set({ isLoading: false });
+      return false;
     }
   },
   
@@ -165,23 +164,43 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
   },
   
   updateActualBudget: async (id: string, weekLabel: string, amount: number) => {
-    set({ isLoading: true });
+    set(state => ({ isLoading: true }));
     try {
       const success = await updateAdSetActualBudget(id, weekLabel, amount);
       if (success) {
-        // Find which campaign this ad set belongs to
+        // Trouver la campagne associée à cet ad set
         let campaignId: string | null = null;
+        let adSetName: string = '';
+        
         for (const [cId, adSets] of Object.entries(get().adSets)) {
-          if (adSets.some(adSet => adSet.id === id)) {
+          const foundAdSet = adSets.find(adSet => adSet.id === id);
+          if (foundAdSet) {
             campaignId = cId;
+            adSetName = foundAdSet.name;
+            
+            // Mettre à jour l'ad set dans le store avec le nouveau budget réel
+            set(state => ({
+              adSets: {
+                ...state.adSets,
+                [cId]: state.adSets[cId].map(adSet => {
+                  if (adSet.id === id) {
+                    const updatedActualBudgets = { 
+                      ...(adSet.actualBudgets || {}), 
+                      [weekLabel]: amount 
+                    };
+                    return { ...adSet, actualBudgets: updatedActualBudgets };
+                  }
+                  return adSet;
+                })
+              },
+              isLoading: false
+            }));
+            
             break;
           }
         }
-        
-        if (campaignId) {
-          await get().fetchAdSets(campaignId);
-        }
       }
+      
       return success;
     } catch (error) {
       console.error('Error updating ad set actual budget:', error);
@@ -190,9 +209,8 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
         description: "Impossible de mettre à jour le budget réel",
         variant: "destructive"
       });
-      return false;
-    } finally {
       set({ isLoading: false });
+      return false;
     }
   }
 }));

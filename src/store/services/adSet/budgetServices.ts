@@ -5,6 +5,8 @@ import { supabaseService } from '../base/supabaseService';
 
 export async function updateAdSetActualBudget(id: string, weekLabel: string, amount: number): Promise<boolean> {
   try {
+    console.log(`Updating ad set ${id} actual budget for week ${weekLabel}: ${amount}`);
+    
     // Get current ad set
     const { data: adSetData, error: adSetError } = await supabase
       .from('ad_sets')
@@ -31,6 +33,8 @@ export async function updateAdSetActualBudget(id: string, weekLabel: string, amo
       [weekLabel]: amount
     };
     
+    console.log('Updating ad set actual budgets:', updatedActualBudgets);
+    
     // Save to database
     const { error: updateError } = await supabase
       .from('ad_sets')
@@ -38,6 +42,7 @@ export async function updateAdSetActualBudget(id: string, weekLabel: string, amo
       .eq('id', id);
     
     if (updateError) {
+      console.error('Error updating ad set actual budget:', updateError);
       return supabaseService.handleError(updateError, 'Erreur lors de la mise à jour du budget réel');
     }
     

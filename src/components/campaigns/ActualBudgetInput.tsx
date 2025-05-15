@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { formatCurrency } from '@/utils/budgetUtils';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
-import { ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, Loader2 } from 'lucide-react';
 import { updateActualBudgetService } from '@/store/services/campaign/updateCampaignService';
 import { useCampaignStore } from '@/store/campaignStore';
 
@@ -20,18 +20,23 @@ export function ActualBudgetInput({ campaignId, weekLabel, plannedBudget }: Actu
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
   
+  // Get campaign
+  const campaign = campaigns.find(c => c.id === campaignId);
+  
   // Calculate variance
   const variance = actualBudget !== null ? actualBudget - plannedBudget : 0;
   const hasVariance = actualBudget !== null && variance !== 0;
   
   // Get actual budget from campaign data
   useEffect(() => {
-    const campaign = campaigns.find(c => c.id === campaignId);
     if (campaign && campaign.actualBudgets && campaign.actualBudgets[weekLabel] !== undefined) {
       setActualBudget(campaign.actualBudgets[weekLabel]);
       setInputValue(campaign.actualBudgets[weekLabel].toString());
+    } else {
+      setActualBudget(null);
+      setInputValue('');
     }
-  }, [campaignId, weekLabel, campaigns]);
+  }, [campaign, weekLabel]);
   
   // Update actual budget
   const updateActualBudget = async (value: number) => {
@@ -101,7 +106,10 @@ export function ActualBudgetInput({ campaignId, weekLabel, plannedBudget }: Actu
       }}
     >
       {isLoading ? (
-        <div className="w-full h-4 bg-muted animate-pulse rounded"></div>
+        <div className="flex items-center">
+          <Loader2 className="h-4 w-4 animate-spin text-primary mr-1" />
+          <span>Mise à jour...</span>
+        </div>
       ) : actualBudget !== null ? (
         <div className="flex items-center justify-between">
           <span className={`text-sm ${hasVariance ? (variance > 0 ? 'text-red-500' : 'text-green-500') : ''}`}>
@@ -122,7 +130,7 @@ export function ActualBudgetInput({ campaignId, weekLabel, plannedBudget }: Actu
           )}
         </div>
       ) : (
-        <span className="text-muted-foreground text-sm group-hover:text-primary">Click to add</span>
+        <span className="text-muted-foreground text-sm group-hover:text-primary">Cliquez pour ajouter</span>
       )}
     </div>
   );
