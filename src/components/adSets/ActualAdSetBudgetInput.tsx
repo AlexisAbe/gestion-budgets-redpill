@@ -25,29 +25,34 @@ export function ActualAdSetBudgetInput({
   actualCampaignBudget
 }: ActualAdSetBudgetInputProps) {
   const { updateCampaign, campaigns } = useCampaignStore();
-  const { adSets, fetchAdSets } = useAdSetStore();
+  const { adSets, fetchAdSets, updateAdSet } = useAdSetStore();
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [actualBudget, setActualBudget] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Calculate the ad set's actual budget based on campaign's actual budget and ad set percentage
+  // Trouver l'ad set actuel
+  const campaign = campaigns.find(c => c.id === campaignId);
+  const adSetsForCampaign = adSets[campaignId] || [];
+  const currentAdSet = adSetsForCampaign.find(adSet => adSet.id === adSetId);
+
+  // Charger le budget réel déjà saisi pour cet ad set et cette semaine
   useEffect(() => {
-    if (actualCampaignBudget !== undefined) {
-      const adSetActualBudget = actualCampaignBudget * (adSetPercentage / 100);
+    if (currentAdSet && currentAdSet.actualBudgets && currentAdSet.actualBudgets[weekLabel] !== undefined) {
+      const adSetActualBudget = currentAdSet.actualBudgets[weekLabel];
       setActualBudget(adSetActualBudget);
       setInputValue(adSetActualBudget.toString());
     } else {
       setActualBudget(null);
       setInputValue('');
     }
-  }, [actualCampaignBudget, adSetPercentage]);
+  }, [currentAdSet, weekLabel]);
 
   // Calculate variance between planned and actual
   const variance = actualBudget !== null ? actualBudget - plannedBudget : 0;
   const hasVariance = actualBudget !== null && Math.abs(variance) > 1; // Account for small rounding errors
 
-  // Update actual budget
+  // Update actual budget for this ad set only
   const handleUpdateActualBudget = async () => {
     if (inputValue.trim() === '') {
       setIsEditing(false);
@@ -62,29 +67,42 @@ export function ActualAdSetBudgetInput({
 
     setIsLoading(true);
     try {
-      // Get the current campaign
-      const campaign = campaigns.find(c => c.id === campaignId);
-      if (!campaign) {
-        throw new Error('Campaign not found');
+      if (!currentAdSet) {
+        throw new Error('Ad set not found');
       }
 
-      // Calculate what percentage of the actual budget this ad set's actual budget represents
-      const calculatedActualBudget = value / (adSetPercentage / 100);
-      
-      // Update the campaign's actual budgets
+      // Mettre à jour les budgets réels de cet ad set uniquement
       const updatedActualBudgets = { 
-        ...(campaign.actualBudgets || {}),
-        [weekLabel]: calculatedActualBudget
+        ...(currentAdSet.actualBudgets || {}),
+        [weekLabel]: value
       };
       
-      // Update the campaign
-      await updateCampaign(campaignId, {
+      // Mettre à jour l'ad set
+      await updateAdSet(adSetId, {
         actualBudgets: updatedActualBudgets
       });
-
-      // Refresh ad sets to get updated data
-      await fetchAdSets(campaignId);
       
+      // Recalculer le budget total réel pour la campagne (somme des budgets réels des ad sets)
+      if (campaign) {
+        const updatedAdSets = await fetchAdSets(campaignId);
+        const totalActualBudgetForWeek = updatedAdSets.reduce((total, adSet) => {
+          if (adSet.actualBudgets && adSet.actualBudgets[weekLabel]) {
+            return total + adSet.actualBudgets[weekLabel];
+          }
+          return total;
+        }, 0);
+
+        // Mettre à jour le budget réel de la campagne pour cette semaine
+        const updatedCampaignActualBudgets = {
+          ...(campaign.actualBudgets || {}),
+          [weekLabel]: totalActualBudgetForWeek
+        };
+        
+        await updateCampaign(campaignId, {
+          actualBudgets: updatedCampaignActualBudgets
+        });
+      }
+
       setActualBudget(value);
       toast.success(`Budget réel mis à jour: ${formatCurrency(value)}`);
     } catch (error) {

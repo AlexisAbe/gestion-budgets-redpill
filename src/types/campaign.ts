@@ -27,6 +27,7 @@ export interface Campaign {
   durationDays: number;
   weeklyBudgets: Record<string, number>; // { "W1": 1000, "W2": 2000, ... }
   actualBudgets?: Record<string, number>; // For actual spent budgets
+  weeklyNotes?: Record<string, string>; // For notes on weekly budgets { "W1": "Note text", ... }
   createdAt: string;
   updatedAt: string;
 }
@@ -46,6 +47,7 @@ export interface AdSet {
   description?: string;
   targetAudience?: string;
   actualBudgets?: Record<string, number>; // Actual spent budgets by week for this ad set
+  weeklyNotes?: Record<string, string>; // Notes for weekly budgets
   createdAt: string;
   updatedAt: string;
 }

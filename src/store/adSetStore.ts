@@ -6,7 +6,8 @@ import {
   addAdSet, 
   updateAdSet, 
   deleteAdSet,
-  validateAdSetBudgets
+  validateAdSetBudgets,
+  updateAdSetActualBudget
 } from './services/adSet/adSetService';
 import { toast } from '@/hooks/use-toast';
 
@@ -18,6 +19,7 @@ interface AdSetState {
   updateAdSet: (id: string, updates: Partial<AdSet>) => Promise<AdSet | null>;
   deleteAdSet: (id: string, name: string) => Promise<boolean>;
   validateBudgets: (campaignId: string) => Promise<{ valid: boolean, total: number }>;
+  updateActualBudget: (id: string, weekLabel: string, amount: number) => Promise<boolean>;
 }
 
 export const useAdSetStore = create<AdSetState>((set, get) => ({
@@ -160,5 +162,37 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
   
   validateBudgets: async (campaignId: string) => {
     return await validateAdSetBudgets(campaignId);
+  },
+  
+  updateActualBudget: async (id: string, weekLabel: string, amount: number) => {
+    set({ isLoading: true });
+    try {
+      const success = await updateAdSetActualBudget(id, weekLabel, amount);
+      if (success) {
+        // Find which campaign this ad set belongs to
+        let campaignId: string | null = null;
+        for (const [cId, adSets] of Object.entries(get().adSets)) {
+          if (adSets.some(adSet => adSet.id === id)) {
+            campaignId = cId;
+            break;
+          }
+        }
+        
+        if (campaignId) {
+          await get().fetchAdSets(campaignId);
+        }
+      }
+      return success;
+    } catch (error) {
+      console.error('Error updating ad set actual budget:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le budget réel",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      set({ isLoading: false });
+    }
   }
 }));
