@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCampaignStore } from '@/store/campaignStore';
-import { formatCurrency } from '@/utils/budgetUtils';
+import { formatCurrency, calculateTotalBudget } from '@/utils/budgetUtils';
 import { BarChart3, CheckSquare, AlertTriangle, BarChart2, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -36,8 +36,19 @@ export function CampaignHeader() {
   }, [weeks]);
 
   // Calculate total planned budget (sum of all campaign totalBudgets)
-  // Modified: Now only using the campaign.totalBudget without including actual budgets
   const totalPlannedBudget = filteredCampaigns.reduce((sum, campaign) => sum + campaign.totalBudget, 0);
+
+  // Calculate total allocated budget (sum of all weekly budgets across all campaigns)
+  const totalAllocatedBudget = filteredCampaigns.reduce((sum, campaign) => {
+    return sum + Object.values(campaign.weeklyBudgets).reduce((weeklySum, budget) => weeklySum + (budget || 0), 0);
+  }, 0);
+
+  // Calculate allocation difference and percentage
+  const allocationDifference = totalPlannedBudget - totalAllocatedBudget;
+  const allocationPercentage = totalPlannedBudget > 0 ? (totalAllocatedBudget / totalPlannedBudget) * 100 : 0;
+  
+  // Determine if allocation is balanced (within 1% margin)
+  const isBalanced = Math.abs(allocationPercentage - 100) < 1;
 
   // Calculate total actual spent budget (sum of all actual budgets)
   const totalActualSpent = filteredCampaigns.reduce((sum, campaign) => {
@@ -116,6 +127,48 @@ export function CampaignHeader() {
             </p>
           </CardContent>
         </Card>
+        
+        <Card className={`${isBalanced ? 'border-green-500/30' : 'border-red-500/30'}`}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Allocation Budget</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Planifié</p>
+                <div className="text-lg font-bold">{formatCurrency(totalAllocatedBudget)}</div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Différence</p>
+                <div 
+                  className={`text-lg font-bold ${
+                    isBalanced ? 'text-green-500' : 'text-red-500'
+                  }`}
+                >
+                  {formatCurrency(allocationDifference)}
+                </div>
+              </div>
+            </div>
+            <div className="mt-2 h-1.5 w-full rounded-full bg-secondary">
+              <div 
+                className={`h-1.5 rounded-full ${isBalanced ? 'bg-green-500' : 'bg-red-500'}`} 
+                style={{
+                  width: `${Math.min(allocationPercentage, 100)}%`
+                }} 
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {allocationPercentage.toFixed(1)}% du budget total alloué
+              {!isBalanced && (
+                <span className={`ml-1 ${allocationDifference > 0 ? 'text-red-500' : 'text-orange-500'}`}>
+                  ({allocationDifference > 0 ? 'non alloué' : 'sur-alloué'})
+                </span>
+              )}
+            </p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Budget Réel Dépensé</CardTitle>
@@ -136,6 +189,7 @@ export function CampaignHeader() {
             </p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Budget Semaine {selectedWeekLabel}</CardTitle>
@@ -172,18 +226,6 @@ export function CampaignHeader() {
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               {weeklyVariancePercentage.toFixed(1)}% du budget prévu
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Alertes Budget</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{unbalancedCampaigns}</div>
-            <p className="text-xs text-muted-foreground">
-              {unbalancedCampaigns > 0 ? `Campagnes nécessitant attention` : 'Toutes les campagnes sont équilibrées'}
             </p>
           </CardContent>
         </Card>
