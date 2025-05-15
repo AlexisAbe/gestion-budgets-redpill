@@ -8,7 +8,7 @@ import {
   deleteAdSet,
   validateAdSetBudgets,
   updateAdSetActualBudget
-} from './services/adSet/adSetService';
+} from './services/adSet';
 import { toast } from '@/hooks/use-toast';
 
 interface AdSetState {
