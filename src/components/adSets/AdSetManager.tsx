@@ -43,8 +43,8 @@ export function AdSetManager({ campaign, onClose, open }: AdSetManagerProps) {
     // Delete ad sets that aren't in the new list
     for (const adSet of currentAdSets) {
       if (!idsToKeep.has(adSet.id)) {
-        // Make sure to cast id to string and pass only the id
-        await deleteAdSet(String(adSet.id));
+        // Pass both id and name to the deleteAdSet function
+        await deleteAdSet(String(adSet.id), adSet.name);
       }
     }
     
