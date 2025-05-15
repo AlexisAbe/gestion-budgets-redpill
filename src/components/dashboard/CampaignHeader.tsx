@@ -36,6 +36,7 @@ export function CampaignHeader() {
   }, [weeks]);
 
   // Calculate total planned budget (sum of all campaign totalBudgets)
+  // Modified: Now only using the campaign.totalBudget without including actual budgets
   const totalPlannedBudget = filteredCampaigns.reduce((sum, campaign) => sum + campaign.totalBudget, 0);
 
   // Calculate total actual spent budget (sum of all actual budgets)
