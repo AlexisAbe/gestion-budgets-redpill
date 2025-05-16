@@ -71,6 +71,7 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
             const weekLabel = week.weekLabel;
             const weekBudget = campaign.weeklyBudgets[weekLabel] || 0;
             const adSetWeeklyBudget = weekBudget * adSet.budgetPercentage / 100;
+            const adSetActualBudget = adSet.actualBudgets && adSet.actualBudgets[weekLabel];
             
             return (
               <td 
@@ -80,6 +81,13 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
                 {isInCampaign && weekBudget > 0 ? (
                   <div className="space-y-1">
                     <div className="font-medium">{formatCurrency(adSetWeeklyBudget)}</div>
+                    
+                    {/* Affichage du budget réel s'il existe */}
+                    {adSetActualBudget !== undefined && (
+                      <div className={`text-xs ${adSetActualBudget > adSetWeeklyBudget ? 'text-red-500' : 'text-green-500'}`}>
+                        Réel: {formatCurrency(adSetActualBudget)}
+                      </div>
+                    )}
                     
                     <ActualAdSetBudgetInput
                       campaignId={campaign.id}

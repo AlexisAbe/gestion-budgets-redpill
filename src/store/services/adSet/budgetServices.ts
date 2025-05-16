@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabaseService } from '../base/supabaseService';
 
 export async function updateAdSetActualBudget(id: string, weekLabel: string, amount: number): Promise<boolean> {
@@ -47,14 +47,11 @@ export async function updateAdSetActualBudget(id: string, weekLabel: string, amo
     }
     
     console.log('Ad set actual budget updated successfully:', id, weekLabel, amount);
+    toast.success("Budget réel mis à jour avec succès");
     return true;
   } catch (error) {
     console.error('Error updating ad set actual budget:', error);
-    toast({
-      title: "Erreur",
-      description: `Erreur lors de la mise à jour du budget réel: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
-      variant: "destructive"
-    });
+    toast.error(`Erreur lors de la mise à jour du budget réel: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     return false;
   }
 }

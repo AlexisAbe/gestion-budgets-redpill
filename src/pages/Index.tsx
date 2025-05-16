@@ -1,14 +1,22 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { CampaignHeader } from '@/components/dashboard/CampaignHeader';
-import { CampaignTable } from '@/components/campaigns/CampaignTable';
-import { ChannelBudgetSummary } from '@/components/dashboard/ChannelBudgetSummary';
 import { Toaster } from '@/components/ui/sonner';
 import { useCampaignStore } from '@/store/campaignStore';
-import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useClientStore } from '@/store/clientStore';
+
+// Lazy load components
+const CampaignHeader = lazy(() => import('@/components/dashboard/CampaignHeader').then(module => ({ default: module.CampaignHeader })));
+const ChannelBudgetSummary = lazy(() => import('@/components/dashboard/ChannelBudgetSummary').then(module => ({ default: module.ChannelBudgetSummary })));
+const CampaignTable = lazy(() => import('@/components/campaigns/CampaignTable').then(module => ({ default: module.CampaignTable })));
+
+// Loading component
+const ComponentLoader = () => (
+  <div className="flex items-center justify-center h-[20vh]">
+    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+  </div>
+);
 
 const Index = () => {
   const { fetchCampaigns, filteredCampaigns, isLoading } = useCampaignStore();
@@ -19,8 +27,10 @@ const Index = () => {
     : null;
 
   useEffect(() => {
-    fetchCampaigns();
-  }, [fetchCampaigns, selectedClientId]); // Refetch when client changes
+    if (selectedClientId) {
+      fetchCampaigns();
+    }
+  }, [fetchCampaigns, selectedClientId]); 
 
   return (
     <MainLayout>
@@ -40,11 +50,17 @@ const Index = () => {
               </div>
             )}
             
-            <CampaignHeader />
+            <Suspense fallback={<ComponentLoader />}>
+              <CampaignHeader />
+            </Suspense>
             
-            <ChannelBudgetSummary campaigns={filteredCampaigns} />
+            <Suspense fallback={<ComponentLoader />}>
+              <ChannelBudgetSummary campaigns={filteredCampaigns} />
+            </Suspense>
             
-            <CampaignTable />
+            <Suspense fallback={<ComponentLoader />}>
+              <CampaignTable />
+            </Suspense>
           </div>
         )}
       </div>
