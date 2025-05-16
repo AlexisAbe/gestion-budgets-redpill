@@ -5,10 +5,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { getCampaignWeeks } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/budgetUtils';
 import { AdSetDetails } from '@/components/adSets/AdSetDetails';
-import { 
-  ChartContainer,
-  ChartTooltipContent
-} from '@/components/ui/chart';
 
 interface BudgetChartProps {
   campaign: Campaign;
@@ -59,23 +55,16 @@ export function BudgetChart({ campaign, weeks }: BudgetChartProps) {
           </div>
 
           <div className="h-64">
-            <ChartContainer 
-              config={{
-                budget: {
-                  label: "Planned Budget",
-                  color: "#10b981"
-                }
-              }}
-            >
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={campaignWeeksData} margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis tickFormatter={(value) => `${Math.round(value / 1000)}k`} />
-                <Tooltip content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />} />
+                <Tooltip formatter={(value) => formatCurrency(value as number)} />
                 <Legend />
                 <Bar dataKey="budget" name="Planned Budget" fill="#10b981" barSize={30} />
               </BarChart>
-            </ChartContainer>
+            </ResponsiveContainer>
           </div>
         </div>
         

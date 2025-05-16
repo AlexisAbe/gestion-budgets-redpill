@@ -1,12 +1,12 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAdSetStore } from '@/store/adSetStore';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { PlusCircle, Loader2 } from 'lucide-react';
 import { AdSetForm } from './AdSetForm';
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { Campaign, AdSet } from '@/types/campaign';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 interface AdSetManagerProps {
   campaign: Campaign;
@@ -15,34 +15,26 @@ interface AdSetManagerProps {
 }
 
 export function AdSetManager({ campaign, onClose, open }: AdSetManagerProps) {
-  const { adSets, fetchAdSets, addAdSet, updateAdSet, deleteAdSet } = useAdSetStore();
+  const { adSets, isLoading, fetchAdSets, addAdSet, updateAdSet, deleteAdSet } = useAdSetStore();
   const [loading, setLoading] = useState(true);
-  
-  // Utiliser useCallback pour éviter les re-renders inutiles
-  const loadAdSets = useCallback(async () => {
-    if (!open) return;
-    
-    setLoading(true);
-    try {
-      await fetchAdSets(campaign.id);
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchAdSets, campaign.id, open]);
   
   useEffect(() => {
     let isMounted = true;
     
     if (open) {
-      loadAdSets().then(() => {
-        if (!isMounted) return;
-      });
+      setLoading(true);
+      fetchAdSets(campaign.id)
+        .finally(() => {
+          if (isMounted) {
+            setLoading(false);
+          }
+        });
     }
     
     return () => {
       isMounted = false;
     };
-  }, [loadAdSets, open]);
+  }, [fetchAdSets, campaign.id, open]);
   
   const handleSaveAdSets = async (newAdSets: Array<Omit<AdSet, "id" | "createdAt" | "updatedAt">>) => {
     setLoading(true);
@@ -59,13 +51,15 @@ export function AdSetManager({ campaign, onClose, open }: AdSetManagerProps) {
         }
       }
       
-      // Process deletions, updates, and additions in batches
-      const deletePromises = currentAdSets
-        .filter(adSet => !idsToKeep.has(adSet.id))
-        .map(adSet => deleteAdSet(String(adSet.id), adSet.name));
+      // Delete ad sets that aren't in the new list
+      for (const adSet of currentAdSets) {
+        if (!idsToKeep.has(adSet.id)) {
+          // Pass both id and name to the deleteAdSet function
+          await deleteAdSet(String(adSet.id), adSet.name);
+        }
+      }
       
-      await Promise.all(deletePromises);
-      
+      // Add or update ad sets
       for (const adSet of newAdSets) {
         if ('id' in adSet && adSet.id) {
           // Update existing ad set - ensure id is a string
@@ -79,13 +73,20 @@ export function AdSetManager({ campaign, onClose, open }: AdSetManagerProps) {
         }
       }
       
-      toast.success(`Les sous-ensembles de "${campaign.name}" ont été mis à jour`);
+      toast({
+        title: "Succès",
+        description: `Les sous-ensembles de "${campaign.name}" ont été mis à jour`,
+      });
       
       // Refresh the list after changes
       await fetchAdSets(campaign.id);
     } catch (error) {
       console.error('Error saving ad sets:', error);
-      toast.error("Une erreur est survenue lors de l'enregistrement des sous-ensembles");
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'enregistrement des sous-ensembles",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
