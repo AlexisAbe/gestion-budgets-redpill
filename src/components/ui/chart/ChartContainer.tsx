@@ -4,6 +4,7 @@ import * as RechartsPrimitive from "recharts"
 
 import { cn } from "@/lib/utils"
 import { ChartConfig, ChartContextProps } from "./types"
+import { ChartStyle } from "./ChartStyle"
 
 const ChartContext = React.createContext<ChartContextProps | null>(null)
 
