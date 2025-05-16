@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { useClientStore } from '@/store/clientStore';
 
 // Lazy load components
-const CampaignHeader = lazy(() => import('@/components/dashboard/CampaignHeader').then(module => ({ default: module.CampaignHeader })));
+const CampaignHeader = lazy(() => import('@/components/dashboard/header').then(module => ({ default: module.CampaignHeader })));
 const ChannelBudgetSummary = lazy(() => import('@/components/dashboard/ChannelBudgetSummary').then(module => ({ default: module.ChannelBudgetSummary })));
 const CampaignTable = lazy(() => import('@/components/campaigns/CampaignTable').then(module => ({ default: module.CampaignTable })));
 
