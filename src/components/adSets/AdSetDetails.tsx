@@ -1,10 +1,11 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAdSetStore } from '@/store/adSetStore';
 import { Campaign } from '@/types/campaign';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/utils/budgetUtils';
 import { Loader2 } from 'lucide-react';
+import { calculateTotalAdSetsActualBudget } from '@/utils/budget/calculations';
 
 interface AdSetDetailsProps {
   campaign: Campaign;
@@ -24,6 +25,11 @@ export function AdSetDetails({ campaign }: AdSetDetailsProps) {
   
   const campaignAdSets = adSets[campaign.id] || [];
   
+  // Calculer le budget réel total
+  const totalActualBudget = useMemo(() => {
+    return calculateTotalAdSetsActualBudget(campaignAdSets);
+  }, [campaignAdSets]);
+  
   if (isLoading && hasTriedFetching) {
     return (
       <div className="flex justify-center items-center p-4">
@@ -42,11 +48,23 @@ export function AdSetDetails({ campaign }: AdSetDetailsProps) {
   
   return (
     <div className="space-y-4">
-      <h3 className="font-medium text-lg">Sous-ensembles de publicité</h3>
+      <div className="flex justify-between items-center">
+        <h3 className="font-medium text-lg">Sous-ensembles de publicité</h3>
+        {totalActualBudget > 0 && (
+          <div className="text-sm font-semibold bg-primary/10 px-3 py-1 rounded-full">
+            Budget réel total: {formatCurrency(totalActualBudget)}
+          </div>
+        )}
+      </div>
       
       <div className="grid sm:grid-cols-2 gap-4">
         {campaignAdSets.map((adSet) => {
           const budgetAmount = campaign.totalBudget * (adSet.budgetPercentage / 100);
+          
+          // Calculer le budget réel total pour ce sous-ensemble
+          const adSetActualBudget = adSet.actualBudgets ? 
+            Object.values(adSet.actualBudgets).reduce((sum, amount) => sum + amount, 0) : 
+            0;
           
           return (
             <Card key={adSet.id}>
@@ -59,7 +77,19 @@ export function AdSetDetails({ campaign }: AdSetDetailsProps) {
                 </div>
               </CardHeader>
               <CardContent className="pt-0 text-sm space-y-2">
-                <div className="font-medium">{formatCurrency(budgetAmount)}</div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Budget prévu:</span>
+                  <span>{formatCurrency(budgetAmount)}</span>
+                </div>
+                
+                {adSetActualBudget > 0 && (
+                  <div className="flex justify-between">
+                    <span className="font-medium">Budget réel dépensé:</span>
+                    <span className={adSetActualBudget > budgetAmount ? 'text-red-500' : 'text-green-500'}>
+                      {formatCurrency(adSetActualBudget)}
+                    </span>
+                  </div>
+                )}
                 
                 {adSet.targetAudience && (
                   <div>

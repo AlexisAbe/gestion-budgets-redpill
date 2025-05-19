@@ -1,90 +1,91 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Campaign, WeeklyView } from '@/types/campaign';
-import { formatDate } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/budgetUtils';
-import { WeeklyBudgetInput } from '@/components/ui/WeeklyBudgetInput';
-import { ActualBudgetInput } from '@/components/campaigns/ActualBudgetInput';
+import { Badge } from '@/components/ui/badge';
 
 interface CampaignHeaderProps {
   campaign: Campaign;
   weeks: WeeklyView[];
   campaignWeeks: number[];
-  getMediaChannelClass: (channel: string) => string;
+  getMediaChannelClass: (mediaChannel: string) => string;
   getObjectiveClass: (objective: string) => string;
+  totalAdSetsActualBudget?: number;
 }
 
-export function CampaignHeader({ 
-  campaign, 
-  weeks, 
-  campaignWeeks, 
-  getMediaChannelClass, 
-  getObjectiveClass 
+export function CampaignHeader({
+  campaign,
+  weeks,
+  campaignWeeks,
+  getMediaChannelClass,
+  getObjectiveClass,
+  totalAdSetsActualBudget = 0
 }: CampaignHeaderProps) {
+  // Vérifier les dates de début et de fin
+  const startDate = new Date(campaign.startDate);
+  const formattedStartDate = startDate.toLocaleDateString('fr-FR');
+  
+  // Calculer la date de fin en ajoutant la durée en jours à la date de début
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + campaign.durationDays);
+  const formattedEndDate = endDate.toLocaleDateString('fr-FR');
+  
+  // Trouver les semaines qui contiennent la campagne
+  const campaignWeekLabels = weeks
+    .filter(week => campaignWeeks.includes(week.weekNumber))
+    .map(week => week.weekLabel);
+  
+  const isMultipleWeeks = campaignWeekLabels.length > 1;
+  const weekLabel = isMultipleWeeks 
+    ? `${campaignWeekLabels[0]} - ${campaignWeekLabels[campaignWeekLabels.length - 1]}`
+    : campaignWeekLabels[0] || '-';
+    
   return (
     <>
-      {/* Fixed columns */}
-      <td className="px-3 py-2 align-middle sticky left-0 bg-card z-10">
-        <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${getMediaChannelClass(campaign.mediaChannel)}`}>
-          {campaign.mediaChannel}
-        </span>
-      </td>
-      <td className="px-3 py-2 align-middle max-w-[200px] sticky left-[100px] bg-card z-10">
-        <div className="font-medium break-words">{campaign.name}</div>
-      </td>
-      <td className="px-3 py-2 align-middle">
-        <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${getObjectiveClass(campaign.objective)}`}>
-          {campaign.objective}
-        </span>
-      </td>
-      <td className="px-3 py-2 align-middle max-w-[150px]">
-        <div className="text-sm truncate" title={campaign.targetAudience}>
-          {campaign.targetAudience}
+      <td className="px-3 py-2 font-medium text-sm sticky left-0 bg-white">
+        <div className="flex flex-col">
+          <span>{campaign.name}</span>
+          <span className="text-xs font-normal text-muted-foreground">
+            {formattedStartDate} - {formattedEndDate}
+          </span>
         </div>
       </td>
-      <td className="px-3 py-2 align-middle whitespace-nowrap">
-        <div className="text-sm">{formatDate(campaign.startDate)}</div>
+      <td className="px-2 py-2 text-sm">
+        <Badge 
+          variant="outline" 
+          className={`${getMediaChannelClass(campaign.mediaChannel)} px-2 py-0.5 text-xs font-medium rounded`}
+        >
+          {campaign.mediaChannel}
+        </Badge>
       </td>
-      <td className="px-3 py-2 align-middle text-right">
-        <div className="font-medium">{formatCurrency(campaign.totalBudget)}</div>
+      <td className="px-2 py-2 text-sm">
+        <Badge 
+          variant="outline" 
+          className={`${getObjectiveClass(campaign.objective)} px-2 py-0.5 text-xs font-medium rounded`}
+        >
+          {campaign.objective}
+        </Badge>
       </td>
-      <td className="px-3 py-2 align-middle text-right">
-        <div className="font-medium">{campaign.durationDays}</div>
+      <td className="px-3 py-2 text-sm">
+        {campaign.targetAudience}
       </td>
-      
-      {/* Actions column will be handled by CampaignActions component */}
-      <td className="px-3 py-2 align-middle">
-        {/* This will be replaced by the CampaignActions component */}
+      <td className="px-3 py-2 text-sm font-medium">
+        {formatCurrency(campaign.totalBudget)}
       </td>
-      
-      {/* Weekly columns - only for visible weeks */}
-      {weeks.map((week) => {
-        const isInCampaign = campaignWeeks.includes(week.weekNumber);
-        const weekLabel = week.weekLabel;
-        const budgetForWeek = campaign.weeklyBudgets[weekLabel] || 0;
-        
-        return (
-          <td 
-            key={`${campaign.id}-${weekLabel}`} 
-            className={`px-1 py-1 text-right min-w-[80px] border-l ${!isInCampaign ? 'bg-muted/20' : ''}`}
-          >
-            {isInCampaign ? (
-              <div className="space-y-2">
-                <WeeklyBudgetInput 
-                  campaignId={campaign.id}
-                  weekLabel={weekLabel}
-                  plannedBudget={budgetForWeek}
-                />
-                <ActualBudgetInput 
-                  campaignId={campaign.id}
-                  weekLabel={weekLabel}
-                  plannedBudget={budgetForWeek}
-                />
-              </div>
-            ) : null}
-          </td>
-        );
-      })}
+      <td className="px-3 py-2 text-sm">
+        <div className="flex flex-col">
+          <span>{weekLabel}</span>
+          <span className="text-xs text-muted-foreground">{campaign.durationDays} jours</span>
+        </div>
+      </td>
+      <td className="px-3 py-2 text-sm">
+        {formatCurrency(totalAdSetsActualBudget)}
+      </td>
+      <td className="px-3 py-2 text-sm">
+        <div className="flex items-center space-x-1">
+          <span>{campaign.id.substring(0, 8)}</span>
+        </div>
+      </td>
     </>
   );
 }

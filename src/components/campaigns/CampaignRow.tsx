@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Campaign, WeeklyView, AdSet } from '@/types/campaign';
 import { useCampaignStore } from '@/store/campaignStore';
 import { useAdSetStore } from '@/store/adSetStore';
@@ -12,6 +12,8 @@ import { CampaignHeader } from './CampaignHeader';
 import { CampaignActions } from './CampaignActions';
 import { InlineAdSets } from './InlineAdSets';
 import { getMediaChannelClass, getObjectiveClass } from './campaignStyles';
+import { calculateTotalAdSetsActualBudget } from '@/utils/budget/calculations';
+import { formatCurrency } from '@/utils/budgetUtils';
 
 interface CampaignRowProps {
   campaign: Campaign;
@@ -56,6 +58,11 @@ export function CampaignRow({
   
   // Get campaign ad sets
   const campaignAdSets = adSets[campaign.id] || [];
+  
+  // Calculate total actual budget for ad sets
+  const totalAdSetsActualBudget = useMemo(() => {
+    return calculateTotalAdSetsActualBudget(campaignAdSets);
+  }, [campaignAdSets]);
 
   return (
     <>
@@ -66,6 +73,7 @@ export function CampaignRow({
           campaignWeeks={campaignWeeks}
           getMediaChannelClass={getMediaChannelClass}
           getObjectiveClass={getObjectiveClass}
+          totalAdSetsActualBudget={totalAdSetsActualBudget}
         />
         {/* Replace the last cell with CampaignActions */}
         <td className="px-3 py-2 align-middle">

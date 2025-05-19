@@ -43,3 +43,28 @@ export function calculateTotalActualBudget(campaign: { actualBudgets?: Record<st
   }
   return Object.values(campaign.actualBudgets).reduce((sum, amount) => sum + amount, 0);
 }
+
+/**
+ * Calculate the total actual budget spent across all ad sets for a campaign
+ */
+export function calculateTotalAdSetsActualBudget(adSets: Array<{
+  actualBudgets?: Record<string, number>
+}>): number {
+  return adSets.reduce((total, adSet) => {
+    if (!adSet.actualBudgets) return total;
+    return total + Object.values(adSet.actualBudgets).reduce((sum, amount) => sum + amount, 0);
+  }, 0);
+}
+
+/**
+ * Calculate the actual budget spent by ad sets for a specific week
+ */
+export function calculateWeeklyAdSetsActualBudget(
+  adSets: Array<{ actualBudgets?: Record<string, number> }>,
+  weekLabel: string
+): number {
+  return adSets.reduce((total, adSet) => {
+    if (!adSet.actualBudgets || !adSet.actualBudgets[weekLabel]) return total;
+    return total + adSet.actualBudgets[weekLabel];
+  }, 0);
+}

@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AdSet, Campaign } from '@/types/campaign';
 import { formatCurrency } from '@/utils/budgetUtils';
 import { WeeklyView } from '@/types/campaign';
 import { Loader2 } from 'lucide-react';
 import { ActualAdSetBudgetInput } from '../adSets/ActualAdSetBudgetInput';
+import { calculateWeeklyAdSetsActualBudget } from '@/utils/budget/calculations';
 
 interface InlineAdSetsProps {
   campaign: Campaign;
@@ -15,6 +16,15 @@ interface InlineAdSetsProps {
 }
 
 export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading }: InlineAdSetsProps) {
+  // Calculer les totaux des budgets réels par semaine
+  const weeklyTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    weeks.forEach(week => {
+      totals[week.weekLabel] = calculateWeeklyAdSetsActualBudget(adSets, week.weekLabel);
+    });
+    return totals;
+  }, [adSets, weeks]);
+
   if (isLoading) {
     return (
       <tr>
@@ -96,6 +106,26 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
           })}
         </tr>
       ))}
+
+      {/* Ligne totale pour les budgets réels */}
+      <tr className="border-t border-gray-300 bg-muted/10">
+        <td colSpan={8} className="px-3 py-2 text-xs font-bold">
+          Total Budget Réel Dépensé
+        </td>
+        {weeks.map(week => {
+          const isInCampaign = campaignWeeks.includes(week.weekNumber);
+          const weeklyTotal = weeklyTotals[week.weekLabel] || 0;
+          
+          return (
+            <td 
+              key={`total-${campaign.id}-${week.weekLabel}`}
+              className={`px-3 py-2 text-xs font-bold border-l ${!isInCampaign ? 'bg-muted/20' : ''}`}
+            >
+              {isInCampaign && weeklyTotal > 0 ? formatCurrency(weeklyTotal) : null}
+            </td>
+          );
+        })}
+      </tr>
     </>
   );
 }

@@ -25,7 +25,15 @@ export async function fetchAdSetsForCampaign(campaignId: string): Promise<AdSet[
       return [];
     }
     
-    const adSets = (data || []).map(item => mapToAdSet(item));
+    const adSets = (data || []).map(item => {
+      const adSet = mapToAdSet(item);
+      // S'assurer que actualBudgets est au moins un objet vide
+      if (!adSet.actualBudgets) {
+        adSet.actualBudgets = {};
+      }
+      return adSet;
+    });
+    
     console.log('Ad sets fetched successfully:', adSets.length, 'for campaign:', campaignId);
     return adSets;
   } catch (error) {
