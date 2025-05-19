@@ -13,7 +13,6 @@ import { CampaignActions } from './CampaignActions';
 import { InlineAdSets } from './InlineAdSets';
 import { getMediaChannelClass, getObjectiveClass } from './campaignStyles';
 import { calculateTotalAdSetsActualBudget } from '@/utils/budget/calculations';
-import { formatCurrency } from '@/utils/budgetUtils';
 
 interface CampaignRowProps {
   campaign: Campaign;
