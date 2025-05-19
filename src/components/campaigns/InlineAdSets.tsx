@@ -5,7 +5,11 @@ import { formatCurrency } from '@/utils/budgetUtils';
 import { WeeklyView } from '@/types/campaign';
 import { Loader2 } from 'lucide-react';
 import { ActualAdSetBudgetInput } from '../adSets/ActualAdSetBudgetInput';
-import { calculateWeeklyAdSetsActualBudget } from '@/utils/budget/calculations';
+import { 
+  calculateWeeklyAdSetsActualBudget,
+  calculateAdSetWeeklyBudget,
+  calculateTotalAdSetsWeeklyBudget
+} from '@/utils/budget/calculations';
 
 interface InlineAdSetsProps {
   campaign: Campaign;
@@ -24,6 +28,17 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
     });
     return totals;
   }, [adSets, weeks]);
+
+  // Calculer les totaux des budgets prévus par semaine
+  const weeklyPlannedTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    weeks.forEach(week => {
+      const weekLabel = week.weekLabel;
+      const weeklyBudget = campaign.weeklyBudgets[weekLabel] || 0;
+      totals[weekLabel] = calculateTotalAdSetsWeeklyBudget(adSets, weeklyBudget);
+    });
+    return totals;
+  }, [adSets, campaign.weeklyBudgets, weeks]);
 
   if (isLoading) {
     return (
@@ -80,7 +95,7 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
             const isInCampaign = campaignWeeks.includes(week.weekNumber);
             const weekLabel = week.weekLabel;
             const weekBudget = campaign.weeklyBudgets[weekLabel] || 0;
-            const adSetWeeklyBudget = weekBudget * adSet.budgetPercentage / 100;
+            const adSetWeeklyBudget = calculateAdSetWeeklyBudget(weekBudget, adSet.budgetPercentage);
             
             return (
               <td 
@@ -106,6 +121,27 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
           })}
         </tr>
       ))}
+
+      {/* Ligne totale pour les budgets prévus */}
+      <tr className="border-t border-gray-300 bg-muted/10">
+        <td colSpan={8} className="px-3 py-2 text-xs font-bold">
+          Total Budget Prévu
+        </td>
+        {weeks.map(week => {
+          const isInCampaign = campaignWeeks.includes(week.weekNumber);
+          const weekLabel = week.weekLabel;
+          const weeklyTotal = weeklyPlannedTotals[weekLabel] || 0;
+          
+          return (
+            <td 
+              key={`planned-total-${campaign.id}-${weekLabel}`}
+              className={`px-3 py-2 text-xs font-bold border-l ${!isInCampaign ? 'bg-muted/20' : ''}`}
+            >
+              {isInCampaign && weeklyTotal > 0 ? formatCurrency(weeklyTotal) : null}
+            </td>
+          );
+        })}
+      </tr>
 
       {/* Ligne totale pour les budgets réels */}
       <tr className="border-t border-gray-300 bg-muted/10">

@@ -39,7 +39,12 @@ export function CampaignHeader({
   const weekLabel = isMultipleWeeks 
     ? `${campaignWeekLabels[0]} - ${campaignWeekLabels[campaignWeekLabels.length - 1]}`
     : campaignWeekLabels[0] || '-';
-    
+  
+  // Calculate total weekly budget
+  const totalWeeklyBudget = Object.entries(campaign.weeklyBudgets)
+    .filter(([week]) => campaignWeekLabels.includes(week))
+    .reduce((sum, [_, amount]) => sum + amount, 0);
+  
   return (
     <>
       <td className="px-3 py-2 font-medium text-sm sticky left-0 bg-white">
@@ -76,6 +81,7 @@ export function CampaignHeader({
         <div className="flex flex-col">
           <span>{weekLabel}</span>
           <span className="text-xs text-muted-foreground">{campaign.durationDays} jours</span>
+          <span className="text-xs font-medium">{formatCurrency(totalWeeklyBudget)}</span>
         </div>
       </td>
       <td className="px-3 py-2 text-sm">

@@ -68,3 +68,26 @@ export function calculateWeeklyAdSetsActualBudget(
     return total + adSet.actualBudgets[weekLabel];
   }, 0);
 }
+
+/**
+ * Calculate weekly budget for ad sets based on campaign weekly budget and ad set percentage
+ */
+export function calculateAdSetWeeklyBudget(
+  campaignWeeklyBudget: number,
+  adSetPercentage: number
+): number {
+  return campaignWeeklyBudget * (adSetPercentage / 100);
+}
+
+/**
+ * Calculate the total weekly budget for all ad sets in a campaign for a specific week
+ */
+export function calculateTotalAdSetsWeeklyBudget(
+  adSets: Array<{ budgetPercentage: number }>,
+  campaignWeeklyBudget: number
+): number {
+  return adSets.reduce((total, adSet) => {
+    const adSetWeeklyBudget = calculateAdSetWeeklyBudget(campaignWeeklyBudget, adSet.budgetPercentage);
+    return total + adSetWeeklyBudget;
+  }, 0);
+}
