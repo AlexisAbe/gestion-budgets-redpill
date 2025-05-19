@@ -180,7 +180,7 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
   },
   
   updateActualBudget: async (id: string, weekLabel: string, amount: number) => {
-    set(state => ({ isLoading: true }));
+    set({ isLoading: true });
     try {
       const success = await updateAdSetActualBudget(id, weekLabel, amount);
       if (success) {
@@ -215,6 +215,8 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
             break;
           }
         }
+      } else {
+        set({ isLoading: false });
       }
       
       return success;
