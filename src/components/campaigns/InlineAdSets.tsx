@@ -31,7 +31,7 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
     );
   }
 
-  if (adSets.length === 0) {
+  if (!adSets || adSets.length === 0) {
     return (
       <tr>
         <td colSpan={8} className="bg-muted/5 p-2 text-center">

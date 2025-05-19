@@ -14,6 +14,7 @@ import { toast } from '@/hooks/use-toast';
 interface AdSetState {
   adSets: Record<string, AdSet[]>; // Keyed by campaign ID
   isLoading: boolean;
+  fetchingCampaigns: Set<string>; // Track which campaigns are being fetched
   fetchAdSets: (campaignId: string) => Promise<AdSet[]>;
   addAdSet: (adSet: Omit<AdSet, "id" | "createdAt" | "updatedAt">) => Promise<AdSet | null>;
   updateAdSet: (id: string, updates: Partial<AdSet>) => Promise<AdSet | null>;
@@ -25,19 +26,30 @@ interface AdSetState {
 export const useAdSetStore = create<AdSetState>((set, get) => ({
   adSets: {},
   isLoading: false,
+  fetchingCampaigns: new Set<string>(),
   
   fetchAdSets: async (campaignId: string) => {
-    set({ isLoading: true });
+    // Prevent duplicate fetches for the same campaign
+    if (get().fetchingCampaigns.has(campaignId)) {
+      return get().adSets[campaignId] || [];
+    }
+    
+    set(state => ({ 
+      isLoading: true,
+      fetchingCampaigns: new Set([...state.fetchingCampaigns, campaignId])
+    }));
+    
     try {
       const adSets = await fetchAdSetsForCampaign(campaignId);
-      console.log('Ad sets fetched:', adSets.length);
+      console.log('Ad sets fetched:', adSets.length, 'for campaign:', campaignId);
       
       set(state => ({
         adSets: {
           ...state.adSets,
           [campaignId]: adSets
         },
-        isLoading: false
+        isLoading: false,
+        fetchingCampaigns: new Set([...state.fetchingCampaigns].filter(id => id !== campaignId))
       }));
       return adSets;
     } catch (error) {
@@ -47,7 +59,11 @@ export const useAdSetStore = create<AdSetState>((set, get) => ({
         description: "Impossible de récupérer les sous-ensembles",
         variant: "destructive"
       });
-      set({ isLoading: false });
+      
+      set(state => ({
+        isLoading: false,
+        fetchingCampaigns: new Set([...state.fetchingCampaigns].filter(id => id !== campaignId))
+      }));
       return [];
     }
   },

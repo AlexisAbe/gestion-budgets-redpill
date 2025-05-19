@@ -16,25 +16,29 @@ interface AdSetManagerProps {
 
 export function AdSetManager({ campaign, onClose, open }: AdSetManagerProps) {
   const { adSets, isLoading, fetchAdSets, addAdSet, updateAdSet, deleteAdSet } = useAdSetStore();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   
   useEffect(() => {
     let isMounted = true;
     
-    if (open) {
-      setLoading(true);
-      fetchAdSets(campaign.id)
-        .finally(() => {
-          if (isMounted) {
-            setLoading(false);
-          }
-        });
-    }
+    const initializeAdSets = async () => {
+      if (open && !initialized && !loading) {
+        setLoading(true);
+        await fetchAdSets(campaign.id);
+        if (isMounted) {
+          setInitialized(true);
+          setLoading(false);
+        }
+      }
+    };
+    
+    initializeAdSets();
     
     return () => {
       isMounted = false;
     };
-  }, [fetchAdSets, campaign.id, open]);
+  }, [fetchAdSets, campaign.id, open, initialized, loading]);
   
   const handleSaveAdSets = async (newAdSets: Array<Omit<AdSet, "id" | "createdAt" | "updatedAt">>) => {
     setLoading(true);

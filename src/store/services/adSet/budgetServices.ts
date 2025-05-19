@@ -10,16 +10,21 @@ export async function updateAdSetActualBudget(id: string, weekLabel: string, amo
     // Get current ad set
     const { data: adSetData, error: adSetError } = await supabase
       .from('ad_sets')
-      .select('*')
+      .select('actual_budgets')
       .eq('id', id)
-      .single();
+      .maybeSingle();
     
     if (adSetError) {
       return supabaseService.handleError(adSetError, 'Erreur lors de la récupération du sous-ensemble');
     }
     
     if (!adSetData) {
-      throw new Error('Sous-ensemble non trouvé');
+      toast({
+        title: "Erreur",
+        description: 'Sous-ensemble non trouvé',
+        variant: "destructive"
+      });
+      return false;
     }
     
     // Ensure actual_budgets is an object by using a default empty object

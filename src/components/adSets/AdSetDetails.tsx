@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAdSetStore } from '@/store/adSetStore';
 import { Campaign } from '@/types/campaign';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,14 +12,19 @@ interface AdSetDetailsProps {
 
 export function AdSetDetails({ campaign }: AdSetDetailsProps) {
   const { adSets, fetchAdSets, isLoading } = useAdSetStore();
+  const [hasTriedFetching, setHasTriedFetching] = useState(false);
   
   useEffect(() => {
-    fetchAdSets(campaign.id);
-  }, [campaign.id, fetchAdSets]);
+    const campaignAdSets = adSets[campaign.id];
+    if (!campaignAdSets && !hasTriedFetching && !isLoading) {
+      setHasTriedFetching(true);
+      fetchAdSets(campaign.id);
+    }
+  }, [campaign.id, adSets, fetchAdSets, hasTriedFetching, isLoading]);
   
   const campaignAdSets = adSets[campaign.id] || [];
   
-  if (isLoading) {
+  if (isLoading && hasTriedFetching) {
     return (
       <div className="flex justify-center items-center p-4">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />

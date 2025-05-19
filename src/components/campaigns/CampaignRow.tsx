@@ -35,13 +35,21 @@ export function CampaignRow({
   const [isDistributionOpen, setIsDistributionOpen] = useState(false);
   const [isAdSetManagerOpen, setIsAdSetManagerOpen] = useState(false);
   const [showAdSets, setShowAdSets] = useState(false);
+  const [hasTriedFetching, setHasTriedFetching] = useState(false);
   
-  // Fetch ad sets when inline display is enabled
+  // Fetch ad sets only when inline display is enabled and we haven't loaded them yet
   useEffect(() => {
-    if (showInlineAdSets && (!adSets[campaign.id] || adSets[campaign.id].length === 0)) {
+    const campaignAdSets = adSets[campaign.id];
+    const shouldFetch = showInlineAdSets && 
+                       !isLoading && 
+                       (!campaignAdSets || campaignAdSets.length === 0) && 
+                       !hasTriedFetching;
+                       
+    if (shouldFetch) {
+      setHasTriedFetching(true);
       fetchAdSets(campaign.id);
     }
-  }, [showInlineAdSets, campaign.id, fetchAdSets, adSets]);
+  }, [showInlineAdSets, campaign.id, fetchAdSets, adSets, isLoading, hasTriedFetching]);
   
   // Get campaign weeks (which weeks this campaign runs in)
   const campaignWeeks = getCampaignWeeks(campaign.startDate, campaign.durationDays, weeks);
@@ -84,7 +92,7 @@ export function CampaignRow({
           adSets={campaignAdSets}
           weeks={weeks}
           campaignWeeks={campaignWeeks}
-          isLoading={isLoading}
+          isLoading={isLoading && hasTriedFetching}
         />
       )}
 

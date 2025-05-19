@@ -16,11 +16,17 @@ export async function fetchAdSetsForCampaign(campaignId: string): Promise<AdSet[
       .order('created_at', { ascending: false });
     
     if (error) {
+      console.error('Supabase error when fetching ad sets:', error);
       return supabaseService.handleError(error, 'Erreur lors de la récupération des sous-ensembles');
     }
     
+    if (!data || data.length === 0) {
+      console.log('No ad sets found for campaign:', campaignId);
+      return [];
+    }
+    
     const adSets = (data || []).map(item => mapToAdSet(item));
-    console.log('Ad sets fetched:', adSets.length);
+    console.log('Ad sets fetched successfully:', adSets.length, 'for campaign:', campaignId);
     return adSets;
   } catch (error) {
     console.error('Error fetching ad sets:', error);
