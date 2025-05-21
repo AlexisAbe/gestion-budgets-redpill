@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Campaign, MediaChannel } from '@/types/campaign';
-import { calculateTotalBudget, calculateTotalActualBudget } from '@/utils/budgetUtils';
+import { calculateTotalBudget, calculateTotalActualBudget } from '@/utils/budget/calculations';
 
 interface ChannelBudgetSummaryProps {
   campaigns: Campaign[];
@@ -93,9 +93,13 @@ export function ChannelBudgetSummary({ campaigns }: ChannelBudgetSummaryProps) {
                 <div>{totalPlanned.toLocaleString('fr-FR')} €</div>
                 <div>{totalActual.toLocaleString('fr-FR')} €</div>
                 <div>
-                  <span className={totalActual > totalPlanned ? 'text-red-600' : ''}>
-                    {calculatePercentage(totalActual, totalPlanned)}%
-                  </span>
+                  {totalPlanned > 0 ? (
+                    <span className={totalActual > totalPlanned ? 'text-red-600' : ''}>
+                      {calculatePercentage(totalActual, totalPlanned)}%
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">N/A</span>
+                  )}
                 </div>
               </div>
             </>
