@@ -1,6 +1,7 @@
 
 import { AdSetState } from '../types';
 import { updateAdSetActualBudgetService } from '../../services';
+import { syncAdSetsActualBudgetsForWeek } from '@/features/campaigns/services/budgetServices';
 
 export const createBudgetAdSetsSlice = (set: any, get: () => AdSetState) => ({
   validateBudgets: async (campaignId: string): Promise<{ valid: boolean, total: number }> => {
@@ -25,10 +26,14 @@ export const createBudgetAdSetsSlice = (set: any, get: () => AdSetState) => ({
       
       if (result) {
         // Find the campaign ID and ad set to update
-        Object.entries(get().adSets).forEach(([campaignId, adSets]) => {
+        let campaignId: string | null = null;
+        
+        Object.entries(get().adSets).forEach(([cId, adSets]) => {
           const adSetIndex = adSets.findIndex(adSet => adSet.id === adSetId);
           
           if (adSetIndex !== -1) {
+            campaignId = cId;
+            
             // Update the store
             set((state: AdSetState) => {
               const updatedAdSets = [...adSets];
@@ -45,12 +50,17 @@ export const createBudgetAdSetsSlice = (set: any, get: () => AdSetState) => ({
               return {
                 adSets: {
                   ...state.adSets,
-                  [campaignId]: updatedAdSets
+                  [cId]: updatedAdSets
                 }
               };
             });
           }
         });
+        
+        // Synchroniser avec la campagne parent
+        if (campaignId) {
+          await syncAdSetsActualBudgetsForWeek(campaignId, weekLabel);
+        }
       }
       
       return result;

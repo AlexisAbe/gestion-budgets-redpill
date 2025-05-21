@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { AdSet, Campaign } from '@/types/campaign';
 import { formatCurrency } from '@/utils/budgetUtils';
 import { WeeklyView } from '@/types/campaign';
-import { Loader2 } from 'lucide-react';
+import { Loader2, BadgeDollarSign } from 'lucide-react';
 import { ActualAdSetBudgetInput } from '../adSets/ActualAdSetBudgetInput';
 import { 
   calculateWeeklyAdSetsActualBudget,
@@ -125,19 +125,25 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
       {/* Ligne totale pour les budgets prévus */}
       <tr className="border-t border-gray-300 bg-muted/10">
         <td colSpan={8} className="px-3 py-2 text-xs font-bold">
-          Total Budget Prévu
+          <div className="flex items-center">
+            <BadgeDollarSign className="w-4 h-4 mr-1 text-green-600" />
+            Total Budget Prévu
+          </div>
         </td>
         {weeks.map(week => {
           const isInCampaign = campaignWeeks.includes(week.weekNumber);
           const weekLabel = week.weekLabel;
           const weeklyTotal = weeklyPlannedTotals[weekLabel] || 0;
+          const campaignWeeklyBudget = campaign.weeklyBudgets[weekLabel] || 0;
           
           return (
             <td 
               key={`planned-total-${campaign.id}-${weekLabel}`}
               className={`px-3 py-2 text-xs font-bold border-l ${!isInCampaign ? 'bg-muted/20' : ''}`}
             >
-              {isInCampaign && weeklyTotal > 0 ? formatCurrency(weeklyTotal) : null}
+              {isInCampaign && campaignWeeklyBudget > 0 ? (
+                <div className="text-green-600">{formatCurrency(campaignWeeklyBudget)}</div>
+              ) : null}
             </td>
           );
         })}
@@ -146,18 +152,32 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
       {/* Ligne totale pour les budgets réels */}
       <tr className="border-t border-gray-300 bg-muted/10">
         <td colSpan={8} className="px-3 py-2 text-xs font-bold">
-          Total Budget Réel Dépensé
+          <div className="flex items-center">
+            <BadgeDollarSign className="w-4 h-4 mr-1 text-blue-600" />
+            Total Budget Réel Dépensé
+          </div>
         </td>
         {weeks.map(week => {
           const isInCampaign = campaignWeeks.includes(week.weekNumber);
-          const weeklyTotal = weeklyTotals[week.weekLabel] || 0;
+          const weekLabel = week.weekLabel;
+          const actualBudget = campaign.actualBudgets && campaign.actualBudgets[weekLabel] || 0;
+          const plannedBudget = campaign.weeklyBudgets[weekLabel] || 0;
+          
+          // Déterminer la classe de couleur en fonction de l'écart entre réel et prévu
+          const colorClass = actualBudget > plannedBudget 
+            ? 'text-red-600' 
+            : actualBudget < plannedBudget * 0.9 
+              ? 'text-amber-600' 
+              : 'text-blue-600';
           
           return (
             <td 
               key={`total-${campaign.id}-${week.weekLabel}`}
               className={`px-3 py-2 text-xs font-bold border-l ${!isInCampaign ? 'bg-muted/20' : ''}`}
             >
-              {isInCampaign && weeklyTotal > 0 ? formatCurrency(weeklyTotal) : null}
+              {isInCampaign && plannedBudget > 0 ? (
+                <div className={colorClass}>{formatCurrency(actualBudget)}</div>
+              ) : null}
             </td>
           );
         })}

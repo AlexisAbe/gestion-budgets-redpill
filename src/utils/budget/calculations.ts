@@ -91,3 +91,27 @@ export function calculateTotalAdSetsWeeklyBudget(
     return total + adSetWeeklyBudget;
   }, 0);
 }
+
+/**
+ * Calculate allocated budget for an array of campaigns
+ */
+export function calculateAllocatedBudget(campaigns: Campaign[]): number {
+  return campaigns.reduce((sum, campaign) => {
+    const weeklySum = Object.values(campaign.weeklyBudgets).reduce((total, amount) => total + (amount || 0), 0);
+    return sum + weeklySum;
+  }, 0);
+}
+
+/**
+ * Calculate actual spend for campaigns for a specific week
+ */
+export function calculateActualSpend(campaigns: Campaign[], selectedWeek: string | null): number {
+  if (!selectedWeek) return 0;
+  
+  return campaigns.reduce((sum, campaign) => {
+    if (campaign.actualBudgets && campaign.actualBudgets[selectedWeek]) {
+      return sum + campaign.actualBudgets[selectedWeek];
+    }
+    return sum;
+  }, 0);
+}

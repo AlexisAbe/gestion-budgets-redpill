@@ -57,7 +57,7 @@ export async function updateActualBudgetService(
     // First get the current campaign to access its weekly budgets
     const { data: campaign, error: fetchError } = await supabase
       .from('campaigns')
-      .select('weekly_budgets')
+      .select('weekly_budgets, actual_budgets')
       .eq('id', campaignId)
       .single();
       
@@ -67,22 +67,17 @@ export async function updateActualBudgetService(
       return false;
     }
     
-    // Get the weekly budgets which contain a special field for actual budgets
-    const weeklyBudgets = campaign.weekly_budgets as Record<string, any> || {};
+    // Get or initialize the actual budgets
+    const actualBudgets = campaign.actual_budgets as Record<string, any> || {};
     
-    // If the weekly budgets doesn't have an __actual_budgets__ field yet, create it
-    if (!weeklyBudgets.__actual_budgets__) {
-      weeklyBudgets.__actual_budgets__ = {};
-    }
+    // Update the actual budget for the specified week
+    actualBudgets[weekLabel] = amount;
     
-    // Update the actual budget in the special field
-    weeklyBudgets.__actual_budgets__[weekLabel] = amount;
-    
-    // Update the campaign with the modified weekly budgets
+    // Update the campaign with the modified actual budgets
     const { error: updateError } = await supabase
       .from('campaigns')
       .update({
-        weekly_budgets: weeklyBudgets,
+        actual_budgets: actualBudgets,
         updated_at: new Date().toISOString()
       })
       .eq('id', campaignId);
@@ -97,6 +92,41 @@ export async function updateActualBudgetService(
   } catch (error) {
     console.error('Error in updateActualBudgetService:', error);
     toast.error(`Erreur lors de la mise à jour du budget réel: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    return false;
+  }
+}
+
+// Synchroniser les budgets réels des sous-ensembles pour une semaine spécifique
+export async function syncAdSetsActualBudgetsForWeek(
+  campaignId: string,
+  weekLabel: string
+): Promise<boolean> {
+  try {
+    // Récupérer tous les sous-ensembles pour cette campagne
+    const { data: adSets, error: adSetsError } = await supabase
+      .from('ad_sets')
+      .select('id, actual_budgets')
+      .eq('campaign_id', campaignId);
+      
+    if (adSetsError) {
+      console.error('Error fetching ad sets for budget sync:', adSetsError);
+      return false;
+    }
+    
+    // Calculer le total des budgets réels pour cette semaine
+    let totalActualBudget = 0;
+    adSets.forEach(adSet => {
+      const actualBudgets = adSet.actual_budgets as Record<string, number> || {};
+      if (actualBudgets[weekLabel]) {
+        totalActualBudget += actualBudgets[weekLabel];
+      }
+    });
+    
+    // Mettre à jour le budget réel de la campagne pour cette semaine
+    return await updateActualBudgetService(campaignId, weekLabel, totalActualBudget);
+    
+  } catch (error) {
+    console.error('Error syncing ad sets actual budgets:', error);
     return false;
   }
 }
