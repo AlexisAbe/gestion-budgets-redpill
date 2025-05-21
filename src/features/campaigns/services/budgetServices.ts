@@ -68,7 +68,19 @@ export async function updateActualBudgetService(
     }
     
     // Get or initialize the actual budgets
-    const actualBudgets = campaign.actual_budgets as Record<string, any> || {};
+    // Handle the case where the actual_budgets column might not exist yet in the database
+    let actualBudgets: Record<string, any> = {};
+    
+    // Check if the campaign has actual_budgets field
+    if ('actual_budgets' in campaign) {
+      actualBudgets = (campaign.actual_budgets as Record<string, any>) || {};
+    } else {
+      // If actual_budgets doesn't exist yet, check if it's stored in weekly_budgets under __actual_budgets__
+      const weeklyBudgets = campaign.weekly_budgets as Record<string, any> || {};
+      if (weeklyBudgets && typeof weeklyBudgets === 'object' && '__actual_budgets__' in weeklyBudgets) {
+        actualBudgets = weeklyBudgets.__actual_budgets__ as Record<string, any> || {};
+      }
+    }
     
     // Update the actual budget for the specified week
     actualBudgets[weekLabel] = amount;
