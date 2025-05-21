@@ -54,10 +54,10 @@ export async function updateActualBudgetService(
   amount: number
 ): Promise<boolean> {
   try {
-    // First get the current campaign to access its actual budgets
+    // First get the current campaign to access its weekly budgets
     const { data: campaign, error: fetchError } = await supabase
       .from('campaigns')
-      .select('actual_budgets')
+      .select('weekly_budgets')
       .eq('id', campaignId)
       .single();
       
@@ -67,15 +67,22 @@ export async function updateActualBudgetService(
       return false;
     }
     
-    // Update the actual budgets
-    const actualBudgets = campaign.actual_budgets || {};
-    actualBudgets[weekLabel] = amount;
+    // Get the weekly budgets which contain a special field for actual budgets
+    const weeklyBudgets = campaign.weekly_budgets || {};
     
-    // Update the campaign with the new actual budgets
+    // If the weekly budgets doesn't have an __actual_budgets__ field yet, create it
+    if (!weeklyBudgets.__actual_budgets__) {
+      weeklyBudgets.__actual_budgets__ = {};
+    }
+    
+    // Update the actual budget in the special field
+    weeklyBudgets.__actual_budgets__[weekLabel] = amount;
+    
+    // Update the campaign with the modified weekly budgets
     const { error: updateError } = await supabase
       .from('campaigns')
       .update({
-        actual_budgets: actualBudgets,
+        weekly_budgets: weeklyBudgets,
         updated_at: new Date().toISOString()
       })
       .eq('id', campaignId);

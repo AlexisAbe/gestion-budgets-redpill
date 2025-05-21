@@ -2,13 +2,13 @@
 import { AdSet } from '@/types/campaign';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { generateUUID } from '@/utils/supabaseUtils';
+import { getValidUUID } from '@/utils/supabaseUtils';
 
 export async function addAdSetService(adSetData: Omit<AdSet, 'id' | 'createdAt' | 'updatedAt'>): Promise<AdSet | null> {
   try {
     // Prepare the data for insertion
     const newAdSet = {
-      id: generateUUID(),
+      id: getValidUUID(''),
       campaign_id: adSetData.campaignId,
       name: adSetData.name,
       budget_percentage: adSetData.budgetPercentage,
@@ -39,7 +39,7 @@ export async function addAdSetService(adSetData: Omit<AdSet, 'id' | 'createdAt' 
       budgetPercentage: data.budget_percentage,
       targetAudience: data.target_audience || '',
       description: data.description || '',
-      actualBudgets: data.actual_budgets || {},
+      actualBudgets: data.actual_budgets as Record<string, number> || {},
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };

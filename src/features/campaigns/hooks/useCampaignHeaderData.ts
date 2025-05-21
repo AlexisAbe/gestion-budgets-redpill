@@ -24,7 +24,7 @@ function calculateActualSpend(campaigns: Campaign[], selectedWeek: string | null
 
 export function useCampaignHeaderData(campaigns: Campaign[], selectedWeek: string | null = null) {
   return useMemo(() => {
-    const totalBudget = calculateTotalBudget(campaigns);
+    const totalBudget = campaigns.reduce((sum, campaign) => sum + campaign.totalBudget, 0);
     const allocatedBudget = calculateAllocatedBudget(campaigns);
     const actualSpend = calculateActualSpend(campaigns, selectedWeek);
     

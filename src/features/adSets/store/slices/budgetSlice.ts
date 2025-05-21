@@ -58,6 +58,12 @@ export const createBudgetAdSetsSlice = (set: any, get: () => AdSetState) => ({
       console.error('Error updating actual budget in store:', error);
       return false;
     }
+  },
+  
+  // Add the missing updateAdSetActualBudget function to match the interface
+  updateAdSetActualBudget: (adSetId: string, weekLabel: string, amount: number): void => {
+    // This is a synchronous wrapper around updateActualBudget
+    get().updateActualBudget(adSetId, weekLabel, amount);
   }
 });
 

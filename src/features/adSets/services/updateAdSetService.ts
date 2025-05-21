@@ -37,7 +37,7 @@ export async function updateAdSetService(adSetId: string, updates: Partial<AdSet
       budgetPercentage: data.budget_percentage,
       targetAudience: data.target_audience || '',
       description: data.description || '',
-      actualBudgets: data.actual_budgets || {},
+      actualBudgets: data.actual_budgets as Record<string, number> || {},
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };

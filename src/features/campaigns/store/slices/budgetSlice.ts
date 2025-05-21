@@ -114,16 +114,16 @@ export const createBudgetSlice = (set: any, get: () => CampaignState) => ({
       }
       
       // Determine which weeks the campaign spans
-      const campaignStartDate = new Date(campaign.startDate);
-      const campaignEndDate = new Date(campaignStartDate);
-      campaignEndDate.setDate(campaignEndDate.getDate() + campaign.durationDays);
+      const campaignStart = new Date(campaign.startDate);
+      const campaignEnd = new Date(campaignStart);
+      campaignEnd.setDate(campaignEnd.getDate() + campaign.durationDays);
       
       const relevantWeeks = weeks.filter(week => {
         const weekStart = new Date(week.startDate);
         const weekEnd = new Date(week.endDate);
         return (
-          (weekStart <= campaignEndDate && weekEnd >= campaignStartDate) || 
-          (weekStart <= campaignStartDate && weekEnd >= campaignStartDate)
+          (weekStart <= campaignEnd && weekEnd >= campaignStart) || 
+          (weekStart <= campaignStart && weekEnd >= campaignStart)
         );
       }).map(week => week.weekLabel);
       

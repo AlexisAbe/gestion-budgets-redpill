@@ -1,5 +1,5 @@
 
-import { Campaign } from "../../types/campaign";
+import { Campaign } from "@/types/campaign";
 import { WeeklyView } from "../dateUtils";
 
 /**
@@ -162,4 +162,54 @@ export function distributeByPercentages(
   }
   
   return newWeeklyBudgets;
+}
+
+// Add the distributeBudget function that was missing
+export function distributeBudget(
+  totalBudget: number,
+  weekLabels: string[],
+  distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual',
+  percentages?: Record<string, number>
+): Record<string, number> {
+  // This is a simplified version to make the interface work
+  // It distributes the budget evenly across weeks
+  const result: Record<string, number> = {};
+  
+  if (distributionStrategy === 'manual' && percentages) {
+    // Manual distribution using percentages
+    let total = 0;
+    for (const weekLabel of weekLabels) {
+      if (percentages[weekLabel]) {
+        const amount = (percentages[weekLabel] / 100) * totalBudget;
+        result[weekLabel] = Number(amount.toFixed(2));
+        total += result[weekLabel];
+      } else {
+        result[weekLabel] = 0;
+      }
+    }
+    
+    // Fix rounding errors
+    if (weekLabels.length > 0) {
+      const diff = totalBudget - total;
+      const firstWeek = weekLabels[0];
+      result[firstWeek] = Number((result[firstWeek] + diff).toFixed(2));
+    }
+  } else {
+    // Even distribution for now (this should be expanded to handle other strategies)
+    const budgetPerWeek = totalBudget / weekLabels.length;
+    
+    for (const weekLabel of weekLabels) {
+      result[weekLabel] = Number(budgetPerWeek.toFixed(2));
+    }
+    
+    // Fix rounding errors
+    if (weekLabels.length > 0) {
+      const total = Object.values(result).reduce((sum, budget) => sum + budget, 0);
+      const diff = totalBudget - total;
+      const firstWeek = weekLabels[0];
+      result[firstWeek] = Number((result[firstWeek] + diff).toFixed(2));
+    }
+  }
+  
+  return result;
 }

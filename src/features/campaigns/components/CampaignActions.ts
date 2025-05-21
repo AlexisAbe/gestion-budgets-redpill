@@ -1,3 +1,3 @@
 
-// Re-export from the existing component for now
-export { default as CampaignActions } from '@/components/campaigns/CampaignActions';
+// Re-export from the existing component
+export { CampaignActions } from '@/components/campaigns/CampaignActions';

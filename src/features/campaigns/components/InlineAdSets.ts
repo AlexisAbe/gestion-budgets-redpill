@@ -1,3 +1,3 @@
 
-// Re-export from the existing component for now
-export { default as InlineAdSets } from '@/components/campaigns/InlineAdSets';
+// Re-export from the existing component
+export { InlineAdSets } from '@/components/campaigns/InlineAdSets';
