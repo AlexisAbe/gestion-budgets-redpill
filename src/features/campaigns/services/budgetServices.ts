@@ -22,7 +22,7 @@ export async function updateWeeklyBudgetService(
     }
     
     // Update the weekly budgets
-    const weeklyBudgets = campaign.weekly_budgets || {};
+    const weeklyBudgets = campaign.weekly_budgets as Record<string, any> || {};
     weeklyBudgets[weekLabel] = amount;
     
     // Update the campaign with the new weekly budgets
@@ -68,7 +68,7 @@ export async function updateActualBudgetService(
     }
     
     // Get the weekly budgets which contain a special field for actual budgets
-    const weeklyBudgets = campaign.weekly_budgets || {};
+    const weeklyBudgets = campaign.weekly_budgets as Record<string, any> || {};
     
     // If the weekly budgets doesn't have an __actual_budgets__ field yet, create it
     if (!weeklyBudgets.__actual_budgets__) {

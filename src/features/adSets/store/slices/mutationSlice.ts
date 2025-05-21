@@ -1,40 +1,50 @@
 
 import { AdSetState } from '../types';
 import { addAdSetService, updateAdSetService, deleteAdSetService } from '../../services';
-import { AdSet } from '@/types/campaign';
 
 export const createMutationAdSetsSlice = (set: any, get: () => AdSetState) => ({
-  addAdSet: async (adSetData: Omit<AdSet, "id" | "createdAt" | "updatedAt">): Promise<AdSet | null> => {
+  addAdSet: async (adSetData: any): Promise<any> => {
+    set({ isLoading: true, error: null });
     try {
-      const result = await addAdSetService(adSetData);
+      const newAdSet = await addAdSetService(adSetData);
       
-      if (result) {
-        // Update the store
+      if (newAdSet) {
         set((state: AdSetState) => {
-          const campaignAdSets = [...(state.adSets[adSetData.campaignId] || []), result];
+          // Get the current ad sets for this campaign
+          const currentAdSets = state.adSets[newAdSet.campaignId] || [];
           
+          // Add the new ad set
           return {
             adSets: {
               ...state.adSets,
-              [adSetData.campaignId]: campaignAdSets
-            }
+              [newAdSet.campaignId]: [...currentAdSets, newAdSet]
+            },
+            isLoading: false
           };
         });
+        
+        return newAdSet;
       }
       
-      return result;
+      set({ isLoading: false });
+      return null;
     } catch (error) {
-      console.error('Error adding ad set in store:', error);
+      console.error('Error adding ad set:', error);
+      set({ 
+        error: error instanceof Error ? error.message : 'An unknown error occurred',
+        isLoading: false
+      });
       return null;
     }
   },
   
-  updateAdSet: async (adSetId: string, updates: Partial<AdSet>): Promise<AdSet | null> => {
+  updateAdSet: async (adSetId: string, updates: any): Promise<boolean> => {
+    set({ isLoading: true, error: null });
     try {
-      const result = await updateAdSetService(adSetId, updates);
+      const updatedAdSet = await updateAdSetService(adSetId, updates);
       
-      if (result) {
-        // Find the campaign ID by looking through all ad sets
+      if (updatedAdSet) {
+        // Find which campaign this ad set belongs to
         let campaignId = '';
         Object.entries(get().adSets).forEach(([cId, adSets]) => {
           if (adSets.some(adSet => adSet.id === adSetId)) {
@@ -43,66 +53,78 @@ export const createMutationAdSetsSlice = (set: any, get: () => AdSetState) => ({
         });
         
         if (campaignId) {
-          // Update the store
           set((state: AdSetState) => {
-            const existingAdSets = state.adSets[campaignId] || [];
-            const updatedAdSets = existingAdSets.map(adSet => 
-              adSet.id === adSetId ? { ...adSet, ...updates } : adSet
-            );
+            const currentAdSets = state.adSets[campaignId] || [];
             
             return {
               adSets: {
                 ...state.adSets,
-                [campaignId]: updatedAdSets
-              }
+                [campaignId]: currentAdSets.map(adSet => 
+                  adSet.id === adSetId ? { ...adSet, ...updates } : adSet
+                )
+              },
+              isLoading: false
             };
           });
         }
+        
+        set({ isLoading: false });
+        return true;
       }
       
-      return result;
+      set({ isLoading: false });
+      return false;
     } catch (error) {
-      console.error('Error updating ad set in store:', error);
-      return null;
+      console.error('Error updating ad set:', error);
+      set({ 
+        error: error instanceof Error ? error.message : 'An unknown error occurred',
+        isLoading: false
+      });
+      return false;
     }
   },
   
-  deleteAdSet: async (adSetId: string, name: string): Promise<boolean> => {
+  deleteAdSet: async (adSetId: string, name: string, campaignId: string): Promise<boolean> => {
+    set({ isLoading: true, error: null });
     try {
       const success = await deleteAdSetService(adSetId, name);
       
       if (success) {
-        // Find the campaign ID by looking through all ad sets
-        let campaignId = '';
-        let removedAdSet = null;
-        
-        Object.entries(get().adSets).forEach(([cId, adSets]) => {
-          const adSet = adSets.find(adSet => adSet.id === adSetId);
-          if (adSet) {
-            campaignId = cId;
-            removedAdSet = adSet;
+        set((state: AdSetState) => {
+          // If campaignId not provided, find which campaign this ad set belongs to
+          let cId = campaignId;
+          if (!cId) {
+            Object.entries(state.adSets).forEach(([id, adSets]) => {
+              if (adSets.some(adSet => adSet.id === adSetId)) {
+                cId = id;
+              }
+            });
           }
-        });
-        
-        if (campaignId) {
-          // Update the store
-          set((state: AdSetState) => {
-            const existingAdSets = state.adSets[campaignId] || [];
-            const updatedAdSets = existingAdSets.filter(adSet => adSet.id !== adSetId);
-            
+          
+          if (cId && state.adSets[cId]) {
             return {
               adSets: {
                 ...state.adSets,
-                [campaignId]: updatedAdSets
-              }
+                [cId]: state.adSets[cId].filter(adSet => adSet.id !== adSetId)
+              },
+              isLoading: false
             };
-          });
-        }
+          }
+          
+          return { isLoading: false };
+        });
+        
+        return true;
       }
       
-      return success;
+      set({ isLoading: false });
+      return false;
     } catch (error) {
-      console.error('Error deleting ad set in store:', error);
+      console.error('Error deleting ad set:', error);
+      set({ 
+        error: error instanceof Error ? error.message : 'An unknown error occurred',
+        isLoading: false
+      });
       return false;
     }
   }
