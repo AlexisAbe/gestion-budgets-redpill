@@ -6,11 +6,14 @@ import { createMutationAdSetsSlice } from './slices/mutationSlice';
 import { createBudgetAdSetsSlice } from './slices/budgetSlice';
 
 // Create the store with all slices
-const useAdSetStore = create<AdSetState>()((...args) => ({
+const useAdSetStore = create<AdSetState>()((set, get) => ({
   adSets: {},
-  ...createFetchAdSetsSlice(...args),
-  ...createMutationAdSetsSlice(...args),
-  ...createBudgetAdSetsSlice(...args)
+  isLoading: false,
+  error: null,
+  fetchingCampaigns: new Set(),
+  ...createFetchAdSetsSlice(set, get),
+  ...createMutationAdSetsSlice(set, get),
+  ...createBudgetAdSetsSlice(set, get)
 }));
 
 export { useAdSetStore };
