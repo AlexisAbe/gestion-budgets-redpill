@@ -44,6 +44,10 @@ export function ActualSpendCard({ totalActualSpent, percentageSpent }: ActualSpe
           </span>
         )}
       </p>
+      {/* Ajout d'un texte explicatif pour indiquer que c'est le cumul de toutes les semaines */}
+      <p className="text-xs text-muted-foreground mt-1 italic">
+        Cumul des dépenses réelles de toutes les semaines
+      </p>
     </BudgetCard>
   );
 }
