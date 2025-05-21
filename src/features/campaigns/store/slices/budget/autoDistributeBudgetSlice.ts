@@ -7,13 +7,23 @@ export const createAutoDistributeBudgetSlice = (set: any, get: () => CampaignSta
   autoDistributeBudget: async (
     campaignId: string,
     distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual',
-    percentages?: Record<string, number>,
+    percentagesOrApplyGlobally?: Record<string, number> | boolean,
     applyGlobally: boolean = false
   ): Promise<void> => {
     try {
+      // Determine if the third parameter is percentages or applyGlobally flag
+      let percentages: Record<string, number> | undefined = undefined;
+      let shouldApplyGlobally = applyGlobally;
+      
+      if (typeof percentagesOrApplyGlobally === 'boolean') {
+        shouldApplyGlobally = percentagesOrApplyGlobally;
+      } else {
+        percentages = percentagesOrApplyGlobally;
+      }
+
       const { campaigns, weeks, filteredCampaigns } = get();
       
-      if (applyGlobally) {
+      if (shouldApplyGlobally) {
         // Apply to all filteredCampaigns (which respect client filtering)
         const updateOperations = [];
         const distributionResults = {};
