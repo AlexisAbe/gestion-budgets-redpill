@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -83,7 +82,7 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
 
   const handleDistribute = () => {
     if (activeTab === 'auto') {
-      // Fix: Use the correct interface for autoDistributeBudget
+      // Fix: Only use three arguments as expected by the autoDistributeBudget function
       autoDistributeBudget(
         campaign.id, 
         selectedMethod, 
@@ -107,7 +106,7 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
         percentageObject[week.weekLabel] = week.percentage;
       });
       
-      // Fix: Use the correct interface for autoDistributeBudget with manual distribution
+      // Fix: Only use three arguments as expected by the autoDistributeBudget function
       autoDistributeBudget(
         campaign.id, 
         'manual', 
