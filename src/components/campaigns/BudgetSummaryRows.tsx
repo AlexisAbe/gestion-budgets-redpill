@@ -76,12 +76,21 @@ interface ActualBudgetRowProps {
 }
 
 function ActualBudgetRow({ campaign, weeks, campaignWeeks, adSets }: ActualBudgetRowProps) {
+  // Calculer la somme totale des budgets réels dépensés sur toutes les semaines
+  const totalActualSpent = weeks.reduce((total, week) => {
+    const weeklyActual = calculateWeeklyAdSetsActualBudget(adSets, week.weekLabel);
+    return total + weeklyActual;
+  }, 0);
+  
   return (
     <tr className="border-t border-gray-300 bg-muted/10">
       <td colSpan={8} className="px-3 py-2 text-xs font-bold">
         <div className="flex items-center">
           <BadgeDollarSign className="w-4 h-4 mr-1 text-blue-600" />
           Total Budget Réel Dépensé
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            ({formatCurrency(totalActualSpent)})
+          </span>
         </div>
       </td>
       {weeks.map(week => {
