@@ -97,6 +97,18 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
             const weekBudget = campaign.weeklyBudgets[weekLabel] || 0;
             const adSetWeeklyBudget = calculateAdSetWeeklyBudget(weekBudget, adSet.budgetPercentage);
             
+            // Récupérer le budget réel pour cet ad set et cette semaine
+            const adSetActualBudget = adSet.actualBudgets && adSet.actualBudgets[weekLabel] || 0;
+            
+            // Déterminer si le budget réel dépasse le budget prévu
+            const isOverBudget = adSetActualBudget > adSetWeeklyBudget;
+            const isWithinBudget = adSetActualBudget > 0 && adSetActualBudget <= adSetWeeklyBudget;
+            
+            // Calculer le pourcentage d'utilisation pour la barre de progression
+            const utilizationPercentage = adSetWeeklyBudget > 0 
+              ? Math.min(100, (adSetActualBudget / adSetWeeklyBudget) * 100)
+              : 0;
+            
             return (
               <td 
                 key={`adset-${adSet.id}-${weekLabel}`} 
@@ -114,6 +126,31 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
                       plannedBudget={adSetWeeklyBudget}
                       actualCampaignBudget={campaign.actualBudgets && campaign.actualBudgets[weekLabel]}
                     />
+                    
+                    {adSetActualBudget > 0 && (
+                      <div className="w-full mt-1">
+                        <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full ${isOverBudget ? 'bg-red-500' : 'bg-green-500'}`} 
+                            style={{ width: `${utilizationPercentage}%` }}
+                          ></div>
+                        </div>
+                        <div className="flex justify-between text-xs mt-0.5">
+                          <span className={`text-[10px] ${
+                            isOverBudget 
+                              ? 'text-red-500 font-semibold' 
+                              : isWithinBudget 
+                                ? 'text-green-500' 
+                                : ''
+                          }`}>
+                            {isOverBudget ? '+' : ''}{Math.abs(adSetActualBudget - adSetWeeklyBudget).toFixed(2)}€
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {utilizationPercentage.toFixed(0)}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : null}
               </td>
@@ -164,20 +201,36 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
           const plannedBudget = campaign.weeklyBudgets[weekLabel] || 0;
           
           // Déterminer la classe de couleur en fonction de l'écart entre réel et prévu
-          const colorClass = actualBudget > plannedBudget 
-            ? 'text-red-600' 
-            : actualBudget < plannedBudget * 0.9 
-              ? 'text-amber-600' 
-              : 'text-blue-600';
+          const isOverBudget = actualBudget > plannedBudget;
+          const isWithinBudget = actualBudget > 0 && actualBudget <= plannedBudget * 0.98; // 2% de marge pour être considéré dans le budget
+          
+          let textColorClass = '';
+          if (actualBudget > 0) {
+            textColorClass = isOverBudget ? 'text-red-600' : isWithinBudget ? 'text-green-600' : 'text-blue-600';
+          }
           
           return (
             <td 
               key={`total-${campaign.id}-${week.weekLabel}`}
               className={`px-3 py-2 text-xs font-bold border-l ${!isInCampaign ? 'bg-muted/20' : ''}`}
             >
-              {isInCampaign && plannedBudget > 0 ? (
-                <div className={colorClass}>{formatCurrency(actualBudget)}</div>
-              ) : null}
+              {isInCampaign && plannedBudget > 0 && actualBudget > 0 ? (
+                <div className={textColorClass}>
+                  {formatCurrency(actualBudget)}
+                  {isOverBudget && (
+                    <span className="ml-1 bg-red-100 text-red-600 px-1 py-0.5 rounded text-[10px]">
+                      +{((actualBudget / plannedBudget - 1) * 100).toFixed(0)}%
+                    </span>
+                  )}
+                  {isWithinBudget && (
+                    <span className="ml-1 bg-green-100 text-green-600 px-1 py-0.5 rounded text-[10px]">
+                      {((actualBudget / plannedBudget) * 100).toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+              ) : (isInCampaign && plannedBudget > 0 ? (
+                <div className="text-muted-foreground opacity-50">-</div>
+              ) : null)}
             </td>
           );
         })}
