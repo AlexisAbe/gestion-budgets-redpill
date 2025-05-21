@@ -83,11 +83,11 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
 
   const handleDistribute = () => {
     if (activeTab === 'auto') {
-      // Fix: Pass only 3 arguments as expected by the autoDistributeBudget function
+      // Auto distribution only needs campaign ID, distribution method, and global flag
       autoDistributeBudget(
         campaign.id, 
         selectedMethod,
-        useGlobalPercentages 
+        useGlobalPercentages
       );
     } else {
       // For manual distribution, check if percentages add up to 100%
@@ -106,12 +106,11 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
         percentageObject[week.weekLabel] = week.percentage;
       });
       
-      // Fix: Pass 3 arguments with percentageObject and useGlobalPercentages
+      // Use percentageObject for manual distribution
       autoDistributeBudget(
         campaign.id, 
         'manual',
-        percentageObject,
-        useGlobalPercentages
+        useGlobalPercentages ? useGlobalPercentages : percentageObject
       );
     }
     
