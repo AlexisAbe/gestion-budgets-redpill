@@ -38,19 +38,14 @@ export function calculateTotalBudget(campaign: { weeklyBudgets: Record<string, n
  * Calculate the total actual budget spent
  */
 export function calculateTotalActualBudget(campaign: { actualBudgets?: Record<string, number> }): number {
-  // Ajout d'un log de debug pour voir ce qui est passé à cette fonction
-  console.log('Calculating actual budget for campaign with actualBudgets:', campaign.actualBudgets);
-  
   if (!campaign.actualBudgets || Object.keys(campaign.actualBudgets).length === 0) {
     return 0;
   }
   
-  // Log pour voir les valeurs individuelles
-  const values = Object.values(campaign.actualBudgets);
-  console.log('Actual budget values:', values);
-  
-  const total = values.reduce((sum, amount) => sum + (typeof amount === 'number' ? amount : 0), 0);
-  console.log('Calculated total actual budget:', total);
+  const total = Object.values(campaign.actualBudgets).reduce((sum, amount) => {
+    const numAmount = typeof amount === 'number' ? amount : parseFloat(String(amount)) || 0;
+    return sum + numAmount;
+  }, 0);
   
   return total;
 }
@@ -63,7 +58,11 @@ export function calculateTotalAdSetsActualBudget(adSets: Array<{
 }>): number {
   return adSets.reduce((total, adSet) => {
     if (!adSet.actualBudgets) return total;
-    return total + Object.values(adSet.actualBudgets).reduce((sum, amount) => sum + amount, 0);
+    
+    return total + Object.values(adSet.actualBudgets).reduce((sum, amount) => {
+      const numAmount = typeof amount === 'number' ? amount : parseFloat(String(amount)) || 0;
+      return sum + numAmount;
+    }, 0);
   }, 0);
 }
 
@@ -76,7 +75,11 @@ export function calculateWeeklyAdSetsActualBudget(
 ): number {
   return adSets.reduce((total, adSet) => {
     if (!adSet.actualBudgets || !adSet.actualBudgets[weekLabel]) return total;
-    return total + adSet.actualBudgets[weekLabel];
+    
+    const amount = adSet.actualBudgets[weekLabel];
+    const numAmount = typeof amount === 'number' ? amount : parseFloat(String(amount)) || 0;
+    
+    return total + numAmount;
   }, 0);
 }
 

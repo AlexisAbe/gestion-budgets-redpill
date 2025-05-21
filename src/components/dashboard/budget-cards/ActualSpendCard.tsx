@@ -12,6 +12,8 @@ export function ActualSpendCard({ totalActualSpent, percentageSpent }: ActualSpe
   // Déterminer si le budget est dépassé
   const isBudgetOverspent = percentageSpent > 100;
 
+  console.log('Rendering ActualSpendCard with totalActualSpent:', totalActualSpent);
+
   return (
     <BudgetCard 
       title="Budget Réel Dépensé"

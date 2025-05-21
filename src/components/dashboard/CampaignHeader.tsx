@@ -26,8 +26,12 @@ export function CampaignHeader() {
     weeklyPlannedBudget,
     weeklyActualBudget,
     weeklyVariancePercentage,
-    percentageSpent
+    percentageSpent,
+    allAdSets
   } = useCampaignHeaderData(filteredCampaigns, weeks);
+
+  console.log('CampaignHeader - totalActualSpent:', totalActualSpent);
+  console.log('CampaignHeader - percentageSpent:', percentageSpent);
   
   return (
     <div className="w-full mb-8 space-y-6">

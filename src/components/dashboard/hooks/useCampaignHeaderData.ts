@@ -1,11 +1,14 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { Campaign, WeeklyView } from '@/types/campaign';
-import { calculateTotalActualBudget } from '@/utils/budget/calculations';
+import { Campaign, WeeklyView, AdSet } from '@/types/campaign';
+import { calculateTotalActualBudget, calculateWeeklyAdSetsActualBudget } from '@/utils/budget/calculations';
+import { useAdSetStore } from '@/store/adSetStore';
 
 export function useCampaignHeaderData(filteredCampaigns: Campaign[], weeks: WeeklyView[]) {
   // State for selected week
   const [selectedWeekLabel, setSelectedWeekLabel] = useState<string | null>(null);
+  // Récupérer le store des ad sets
+  const { adSets, fetchAdSets } = useAdSetStore();
   
   // Find current week based on today's date
   useEffect(() => {
@@ -23,6 +26,21 @@ export function useCampaignHeaderData(filteredCampaigns: Campaign[], weeks: Week
       setSelectedWeekLabel(weeks[0].weekLabel);
     }
   }, [weeks]);
+
+  // Charger les ad sets pour toutes les campagnes
+  useEffect(() => {
+    // Fetch ad sets for all campaigns
+    const loadAdSets = async () => {
+      console.log('Loading ad sets for', filteredCampaigns.length, 'campaigns');
+      for (const campaign of filteredCampaigns) {
+        await fetchAdSets(campaign.id);
+      }
+    };
+    
+    if (filteredCampaigns.length > 0) {
+      loadAdSets();
+    }
+  }, [filteredCampaigns, fetchAdSets]);
 
   // Calculate total planned budget (sum of all campaign totalBudgets)
   const totalPlannedBudget = useMemo(() => 
@@ -45,11 +63,36 @@ export function useCampaignHeaderData(filteredCampaigns: Campaign[], weeks: Week
   // Determine if allocation is balanced (within 1% margin)
   const isBalanced = Math.abs(allocationPercentage - 100) < 1;
 
-  // Calculate total actual spent budget (sum of all actual budgets)
-  const totalActualSpent = useMemo(() => 
-    filteredCampaigns.reduce((sum, campaign) => sum + calculateTotalActualBudget(campaign), 0),
-    [filteredCampaigns]
-  );
+  // Agréger tous les ad sets par campagne
+  const allAdSets = useMemo(() => {
+    const result: AdSet[] = [];
+    
+    // Collect all ad sets from all campaigns
+    filteredCampaigns.forEach(campaign => {
+      const campaignAdSets = adSets[campaign.id] || [];
+      result.push(...campaignAdSets);
+    });
+    
+    return result;
+  }, [filteredCampaigns, adSets]);
+
+  // Calculate total actual spent budget (sum of all ad sets' actual budgets)
+  const totalActualSpent = useMemo(() => {
+    console.log('Calculating total actual spent from ad sets:', allAdSets.length);
+    
+    let total = 0;
+    // Aggregate actual budgets from all ad sets
+    allAdSets.forEach(adSet => {
+      if (adSet.actualBudgets) {
+        Object.values(adSet.actualBudgets).forEach(budget => {
+          total += Number(budget) || 0;
+        });
+      }
+    });
+    
+    console.log('Total actual spent calculated from ad sets:', total);
+    return total;
+  }, [allAdSets]);
 
   // Calculate planned and actual budgets for the selected week
   const weeklyPlannedBudget = useMemo(() => 
@@ -62,15 +105,17 @@ export function useCampaignHeaderData(filteredCampaigns: Campaign[], weeks: Week
     [filteredCampaigns, selectedWeekLabel]
   );
 
-  const weeklyActualBudget = useMemo(() => 
-    filteredCampaigns.reduce((sum, campaign) => {
-      if (selectedWeekLabel && campaign.actualBudgets && campaign.actualBudgets[selectedWeekLabel]) {
-        return sum + campaign.actualBudgets[selectedWeekLabel];
+  // Calculate weekly actual budget from ad sets
+  const weeklyActualBudget = useMemo(() => {
+    if (!selectedWeekLabel) return 0;
+    
+    return allAdSets.reduce((sum, adSet) => {
+      if (adSet.actualBudgets && adSet.actualBudgets[selectedWeekLabel]) {
+        return sum + Number(adSet.actualBudgets[selectedWeekLabel]);
       }
       return sum;
-    }, 0),
-    [filteredCampaigns, selectedWeekLabel]
-  );
+    }, 0);
+  }, [allAdSets, selectedWeekLabel]);
 
   // Calculate budget variance for selected week
   const weeklyVariance = weeklyPlannedBudget - weeklyActualBudget;
@@ -104,6 +149,7 @@ export function useCampaignHeaderData(filteredCampaigns: Campaign[], weeks: Week
     weeklyVariancePercentage,
     percentageSpent,
     balancedCampaigns,
-    unbalancedCampaigns
+    unbalancedCampaigns,
+    allAdSets
   };
 }
