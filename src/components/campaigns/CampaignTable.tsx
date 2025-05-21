@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useCampaignStore } from '@/store/campaignStore';
 import { CampaignRow } from './CampaignRow';
 import { BudgetChart } from '../charts/BudgetChart';
@@ -11,6 +11,7 @@ import { MediaChannel } from '@/types/campaign';
 import { useClientStore } from '@/store/clientStore';
 import { ScrollArea } from '../ui/scroll-area';
 import { formatDayMonth } from '@/utils/dateUtils';
+import { useCampaignHeaderData } from '../dashboard/hooks/useCampaignHeaderData';
 
 export function CampaignTable() {
   const { campaigns, filteredCampaigns, weeks } = useCampaignStore();
@@ -19,6 +20,24 @@ export function CampaignTable() {
   const [inlineAdSets, setInlineAdSets] = useState<Record<string, boolean>>({});
   const [selectedChannels, setSelectedChannels] = useState<MediaChannel[]>([]);
   const [weekRange, setWeekRange] = useState<[number, number]>([1, weeks.length]);
+  
+  // Get access to the hook to update selected weeks
+  const { setSelectedWeeks } = useCampaignHeaderData(filteredCampaigns, weeks);
+  
+  // Update selected weeks when week range changes
+  useEffect(() => {
+    // Get the visible week labels based on the selected range
+    const visibleWeekLabels = weeks
+      .filter((_, index) => {
+        const weekNumber = index + 1;
+        return weekNumber >= weekRange[0] && weekNumber <= weekRange[1];
+      })
+      .map(week => week.weekLabel);
+    
+    // Update selected weeks in the header data
+    setSelectedWeeks(visibleWeekLabels);
+    
+  }, [weekRange, weeks, setSelectedWeeks]);
   
   const toggleChart = (campaignId: string) => {
     setExpandedCampaigns(prev => ({
