@@ -72,11 +72,11 @@ export function ChannelBudgetSummary({ campaigns }: ChannelBudgetSummaryProps) {
                       <div className="flex items-center">
                         <div className="w-full bg-muted rounded-full h-2.5 mr-2">
                           <div 
-                            className="bg-primary h-2.5 rounded-full" 
+                            className={`${summary.actualBudget > summary.plannedBudget ? 'bg-red-500' : 'bg-primary'} h-2.5 rounded-full`} 
                             style={{ width: `${Math.min(100, (summary.actualBudget / summary.plannedBudget) * 100)}%` }} 
                           />
                         </div>
-                        <span className="text-xs">
+                        <span className={`text-xs ${summary.actualBudget > summary.plannedBudget ? 'text-red-600 font-semibold' : ''}`}>
                           {Math.round((summary.actualBudget / summary.plannedBudget) * 100)}%
                         </span>
                       </div>
@@ -93,7 +93,9 @@ export function ChannelBudgetSummary({ campaigns }: ChannelBudgetSummaryProps) {
                 <div>{totalPlanned.toLocaleString('fr-FR')} €</div>
                 <div>{totalActual.toLocaleString('fr-FR')} €</div>
                 <div>
-                  {calculatePercentage(totalActual, totalPlanned)}%
+                  <span className={totalActual > totalPlanned ? 'text-red-600' : ''}>
+                    {calculatePercentage(totalActual, totalPlanned)}%
+                  </span>
                 </div>
               </div>
             </>

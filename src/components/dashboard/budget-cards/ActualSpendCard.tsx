@@ -9,6 +9,9 @@ interface ActualSpendCardProps {
 }
 
 export function ActualSpendCard({ totalActualSpent, percentageSpent }: ActualSpendCardProps) {
+  // Déterminer si le budget est dépassé
+  const isBudgetOverspent = percentageSpent > 100;
+
   return (
     <BudgetCard 
       title="Budget Réel Dépensé"
@@ -19,14 +22,27 @@ export function ActualSpendCard({ totalActualSpent, percentageSpent }: ActualSpe
         </svg>
       }
     >
-      <div className="text-2xl font-bold">{formatCurrency(totalActualSpent)}</div>
+      <div className={`text-2xl font-bold ${isBudgetOverspent ? 'text-red-500' : ''}`}>
+        {formatCurrency(totalActualSpent)}
+      </div>
       <div className="mt-2 h-1.5 w-full rounded-full bg-secondary">
-        <div className={`h-1.5 rounded-full ${percentageSpent < 90 ? 'bg-yellow-400' : 'bg-green-500'}`} style={{
-          width: `${Math.min(percentageSpent, 100)}%`
-        }} />
+        <div 
+          className={`h-1.5 rounded-full ${
+            isBudgetOverspent ? 'bg-red-500' : 
+            percentageSpent < 90 ? 'bg-yellow-400' : 'bg-green-500'
+          }`} 
+          style={{
+            width: `${Math.min(percentageSpent, 100)}%`
+          }} 
+        />
       </div>
       <p className="text-xs text-muted-foreground mt-2">
         {percentageSpent.toFixed(1)}% du budget total prévu
+        {isBudgetOverspent && (
+          <span className="ml-1 bg-red-100 text-red-600 px-1 py-0.5 rounded text-[10px]">
+            +{(percentageSpent - 100).toFixed(1)}%
+          </span>
+        )}
       </p>
     </BudgetCard>
   );
