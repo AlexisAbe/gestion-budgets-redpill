@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Campaign, WeeklyView, AdSet } from '@/types/campaign';
 import { useCampaignStore } from '@/store/campaignStore';
@@ -13,6 +12,7 @@ import { CampaignActions } from './CampaignActions';
 import { InlineAdSets } from './InlineAdSets';
 import { getMediaChannelClass, getObjectiveClass } from './campaignStyles';
 import { calculateTotalAdSetsActualBudget } from '@/utils/budget/calculations';
+import { EditCampaignForm } from './EditCampaignForm';
 
 interface CampaignRowProps {
   campaign: Campaign;
@@ -37,6 +37,7 @@ export function CampaignRow({
   const [isAdSetManagerOpen, setIsAdSetManagerOpen] = useState(false);
   const [showAdSets, setShowAdSets] = useState(false);
   const [hasTriedFetching, setHasTriedFetching] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   
   // Fetch ad sets only when inline display is enabled and we haven't loaded them yet
   useEffect(() => {
@@ -63,6 +64,34 @@ export function CampaignRow({
     return calculateTotalAdSetsActualBudget(campaignAdSets);
   }, [campaignAdSets]);
 
+  const handleToggleChart = () => {
+    onToggleChart(campaign.id);
+  };
+
+  const handleToggleInlineAdSets = () => {
+    onToggleInlineAdSets(campaign.id);
+  };
+
+  const handleToggleAdSets = () => {
+    setShowAdSets(!showAdSets);
+  };
+
+  const handleOpenDistribution = () => {
+    setIsDistributionOpen(true);
+  };
+
+  const handleOpenAdSetManager = () => {
+    setIsAdSetManagerOpen(true);
+  };
+
+  const handleEditCampaign = () => {
+    setIsEditOpen(true);
+  };
+
+  const handleDeleteCampaign = () => {
+    deleteCampaign(campaign.id);
+  };
+
   return (
     <>
       <tr className="hover:bg-muted/20">
@@ -74,8 +103,17 @@ export function CampaignRow({
           getObjectiveClass={getObjectiveClass}
           totalAdSetsActualBudget={totalAdSetsActualBudget}
           adSets={campaignAdSets}
+          onOpenDistribution={handleOpenDistribution}
+          onOpenAdSetManager={handleOpenAdSetManager}
+          onToggleAdSets={handleToggleAdSets}
+          onToggleChart={handleToggleChart}
+          onEdit={handleEditCampaign}
+          onDelete={handleDeleteCampaign}
+          showAdSets={showAdSets}
+          showInlineAdSets={showInlineAdSets}
+          onToggleInlineAdSets={handleToggleInlineAdSets}
         />
-        {/* Replace the last cell with CampaignActions */}
+        {/* Garder les actions dans la dernière cellule également pour la compatibilité */}
         <td className="px-3 py-2 align-middle">
           <CampaignActions 
             campaignId={campaign.id}
@@ -85,9 +123,9 @@ export function CampaignRow({
             onToggleChart={onToggleChart}
             onToggleInlineAdSets={onToggleInlineAdSets}
             onDeleteCampaign={deleteCampaign}
-            onOpenDistribution={() => setIsDistributionOpen(true)}
-            onOpenAdSetManager={() => setIsAdSetManagerOpen(true)}
-            onToggleAdSets={() => setShowAdSets(!showAdSets)}
+            onOpenDistribution={handleOpenDistribution}
+            onOpenAdSetManager={handleOpenAdSetManager}
+            onToggleAdSets={handleToggleAdSets}
             showAdSets={showAdSets}
           />
         </td>
@@ -135,6 +173,13 @@ export function CampaignRow({
           onClose={() => setIsAdSetManagerOpen(false)}
         />
       )}
+
+      {/* Add EditCampaignForm */}
+      <EditCampaignForm
+        campaign={campaign}
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+      />
     </>
   );
 }

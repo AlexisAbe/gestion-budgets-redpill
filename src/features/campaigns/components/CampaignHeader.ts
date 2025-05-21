@@ -1,3 +1,3 @@
 
-// Re-export from the existing component for now
-export { CampaignHeader } from '@/components/dashboard/CampaignHeader';
+// Re-export from the existing component
+export { CampaignHeader } from '@/components/campaigns/CampaignHeader';

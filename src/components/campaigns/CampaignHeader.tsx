@@ -3,6 +3,9 @@ import React, { useState } from 'react';
 import { Campaign, WeeklyView } from '@/types/campaign';
 import { formatCurrency } from '@/utils/budgetUtils';
 import { Badge } from '@/components/ui/badge';
+import { MoreVertical } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { 
   calculateWeeklyAdSetsActualBudget,
   calculateTotalAdSetsWeeklyBudget
@@ -16,6 +19,15 @@ interface CampaignHeaderProps {
   getObjectiveClass: (objective: string) => string;
   totalAdSetsActualBudget?: number;
   adSets?: Array<{ actualBudgets?: Record<string, number>, budgetPercentage: number }>;
+  onOpenDistribution?: () => void;
+  onOpenAdSetManager?: () => void;
+  onToggleAdSets?: () => void;
+  onToggleChart?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  showAdSets?: boolean;
+  showInlineAdSets?: boolean;
+  onToggleInlineAdSets?: () => void;
 }
 
 export function CampaignHeader({
@@ -25,7 +37,16 @@ export function CampaignHeader({
   getMediaChannelClass,
   getObjectiveClass,
   totalAdSetsActualBudget = 0,
-  adSets = []
+  adSets = [],
+  onOpenDistribution,
+  onOpenAdSetManager,
+  onToggleAdSets,
+  onToggleChart,
+  onEdit,
+  onDelete,
+  showAdSets,
+  showInlineAdSets,
+  onToggleInlineAdSets
 }: CampaignHeaderProps) {
   // Vérifier les dates de début et de fin
   const startDate = new Date(campaign.startDate);
@@ -51,14 +72,79 @@ export function CampaignHeader({
     .filter(([week]) => campaignWeekLabels.includes(week))
     .reduce((sum, [_, amount]) => sum + amount, 0);
   
+  // Quick actions dropdown menu
+  const QuickActionsDropdown = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <MoreVertical className="h-4 w-4" />
+          <span className="sr-only">Actions</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-48 bg-white">
+        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        
+        {onEdit && (
+          <DropdownMenuItem onClick={onEdit}>
+            Modifier
+          </DropdownMenuItem>
+        )}
+        
+        {onOpenDistribution && (
+          <DropdownMenuItem onClick={onOpenDistribution}>
+            Distribution du budget
+          </DropdownMenuItem>
+        )}
+        
+        {onOpenAdSetManager && (
+          <DropdownMenuItem onClick={onOpenAdSetManager}>
+            Sous-ensembles
+          </DropdownMenuItem>
+        )}
+        
+        {onToggleInlineAdSets && (
+          <DropdownMenuItem onClick={onToggleInlineAdSets}>
+            {showInlineAdSets ? "Masquer les sous-ensembles" : "Afficher les sous-ensembles"}
+          </DropdownMenuItem>
+        )}
+        
+        {onToggleAdSets && (
+          <DropdownMenuItem onClick={onToggleAdSets}>
+            {showAdSets ? "Masquer les détails" : "Afficher les détails"}
+          </DropdownMenuItem>
+        )}
+        
+        {onToggleChart && (
+          <DropdownMenuItem onClick={onToggleChart}>
+            Graphique de budget
+          </DropdownMenuItem>
+        )}
+        
+        {onDelete && (
+          <DropdownMenuSeparator />
+        )}
+        
+        {onDelete && (
+          <DropdownMenuItem className="text-red-600" onClick={onDelete}>
+            Supprimer
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+  
   return (
     <>
       <td className="px-3 py-2 font-medium text-sm sticky left-0 bg-white">
-        <div className="flex flex-col">
-          <span>{campaign.name}</span>
-          <span className="text-xs font-normal text-muted-foreground">
-            {formattedStartDate} - {formattedEndDate}
-          </span>
+        <div className="flex items-center">
+          <QuickActionsDropdown />
+          <div className="flex flex-col ml-2">
+            <span>{campaign.name}</span>
+            <span className="text-xs font-normal text-muted-foreground">
+              {formattedStartDate} - {formattedEndDate}
+            </span>
+          </div>
         </div>
       </td>
       <td className="px-2 py-2 text-sm">
