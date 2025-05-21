@@ -7,10 +7,7 @@ export function useCampaignHeaderData(filteredCampaigns: Campaign[], weeks: Week
   // State for selected week
   const [selectedWeekLabel, setSelectedWeekLabel] = useState<string | null>(null);
   
-  // Track selected weeks for cumulative calculations
-  const [selectedWeeks, setSelectedWeeks] = useState<string[]>([]);
-  
-  // Find current week based on today's date and set initial selected weeks
+  // Find current week based on today's date
   useEffect(() => {
     const today = new Date();
     const currentWeek = weeks.find(week => {
@@ -21,22 +18,9 @@ export function useCampaignHeaderData(filteredCampaigns: Campaign[], weeks: Week
     
     if (currentWeek) {
       setSelectedWeekLabel(currentWeek.weekLabel);
-      
-      // Set visible weeks based on current week (current week + previous week)
-      const currentWeekIndex = weeks.findIndex(w => w.weekLabel === currentWeek.weekLabel);
-      const visibleWeeks = [];
-      
-      if (currentWeekIndex > 0) {
-        visibleWeeks.push(weeks[currentWeekIndex - 1].weekLabel);
-      }
-      
-      visibleWeeks.push(currentWeek.weekLabel);
-      setSelectedWeeks(visibleWeeks);
-      
     } else if (weeks.length > 0) {
       // If today is not in any week range, default to first week
       setSelectedWeekLabel(weeks[0].weekLabel);
-      setSelectedWeeks([weeks[0].weekLabel]);
     }
   }, [weeks]);
 
@@ -61,18 +45,10 @@ export function useCampaignHeaderData(filteredCampaigns: Campaign[], weeks: Week
   // Determine if allocation is balanced (within 1% margin)
   const isBalanced = Math.abs(allocationPercentage - 100) < 1;
 
-  // Calculate total actual spent budget for selected weeks only
+  // Calculate total actual spent budget (sum of all actual budgets)
   const totalActualSpent = useMemo(() => 
-    filteredCampaigns.reduce((sum, campaign) => {
-      if (!campaign.actualBudgets) return sum;
-      
-      // Sum only the budgets for selected weeks
-      return sum + selectedWeeks.reduce((weekSum, weekLabel) => {
-        const weekBudget = campaign.actualBudgets?.[weekLabel] || 0;
-        return weekSum + weekBudget;
-      }, 0);
-    }, 0),
-    [filteredCampaigns, selectedWeeks]
+    filteredCampaigns.reduce((sum, campaign) => sum + calculateTotalActualBudget(campaign), 0),
+    [filteredCampaigns]
   );
 
   // Calculate planned and actual budgets for the selected week
@@ -117,8 +93,6 @@ export function useCampaignHeaderData(filteredCampaigns: Campaign[], weeks: Week
   return {
     selectedWeekLabel,
     setSelectedWeekLabel,
-    selectedWeeks,
-    setSelectedWeeks,
     totalPlannedBudget,
     totalAllocatedBudget,
     allocationDifference,

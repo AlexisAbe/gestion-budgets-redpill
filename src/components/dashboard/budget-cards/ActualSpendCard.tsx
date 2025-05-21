@@ -6,21 +6,11 @@ import { formatCurrency } from '@/utils/budget';
 interface ActualSpendCardProps {
   totalActualSpent: number;
   percentageSpent: number;
-  selectedWeeks?: string[]; // Add selected weeks info
 }
 
-export function ActualSpendCard({ 
-  totalActualSpent, 
-  percentageSpent, 
-  selectedWeeks = [] 
-}: ActualSpendCardProps) {
+export function ActualSpendCard({ totalActualSpent, percentageSpent }: ActualSpendCardProps) {
   // Déterminer si le budget est dépassé
   const isBudgetOverspent = percentageSpent > 100;
-  
-  // Préparer le texte explicatif
-  const weeksText = selectedWeeks.length > 0 
-    ? `Dépenses des semaines ${selectedWeeks.join(', ')}` 
-    : "Cumul des dépenses réelles de toutes les semaines";
 
   return (
     <BudgetCard 
@@ -54,8 +44,9 @@ export function ActualSpendCard({
           </span>
         )}
       </p>
+      {/* Ajout d'un texte explicatif pour indiquer que c'est le cumul de toutes les semaines */}
       <p className="text-xs text-muted-foreground mt-1 italic">
-        {weeksText}
+        Cumul des dépenses réelles de toutes les semaines
       </p>
     </BudgetCard>
   );

@@ -17,7 +17,6 @@ export function CampaignHeader() {
   const { 
     selectedWeekLabel,
     setSelectedWeekLabel,
-    selectedWeeks,
     totalPlannedBudget,
     totalAllocatedBudget,
     allocationDifference,
@@ -58,7 +57,6 @@ export function CampaignHeader() {
         <ActualSpendCard 
           totalActualSpent={totalActualSpent}
           percentageSpent={percentageSpent}
-          selectedWeeks={selectedWeeks}
         />
 
         {selectedWeekLabel && (
