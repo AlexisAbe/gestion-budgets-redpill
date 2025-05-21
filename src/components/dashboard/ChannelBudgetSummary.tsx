@@ -35,8 +35,17 @@ export function ChannelBudgetSummary({ campaigns }: ChannelBudgetSummaryProps) {
     };
   });
 
-  // Debug logging to verify actual budget calculation
+  // Debug logging to help diagnose the issue
   console.log('Channel summaries with actual budgets:', channelSummaries);
+  if (channelSummaries.length > 0) {
+    console.log('First channel actual budget details:', channelSummaries[0]);
+    
+    // Debug the first campaign in the first channel to see its actualBudgets
+    const firstChannel = Object.values(channelGroups)[0];
+    if (firstChannel && firstChannel.length > 0) {
+      console.log('First campaign actual budgets:', firstChannel[0].actualBudgets);
+    }
+  }
   
   // Create total summary
   const totalPlanned = channelSummaries.reduce((sum, summary) => sum + summary.plannedBudget, 0);

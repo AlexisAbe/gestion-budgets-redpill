@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Campaign, WeeklyView } from '@/types/campaign';
+import { calculateTotalActualBudget } from '@/utils/budget/calculations';
 
 export function useCampaignHeaderData(filteredCampaigns: Campaign[], weeks: WeeklyView[]) {
   // State for selected week
@@ -46,12 +47,7 @@ export function useCampaignHeaderData(filteredCampaigns: Campaign[], weeks: Week
 
   // Calculate total actual spent budget (sum of all actual budgets)
   const totalActualSpent = useMemo(() => 
-    filteredCampaigns.reduce((sum, campaign) => {
-      if (campaign.actualBudgets) {
-        return sum + Object.values(campaign.actualBudgets).reduce((weekSum, budget) => weekSum + (budget || 0), 0);
-      }
-      return sum;
-    }, 0),
+    filteredCampaigns.reduce((sum, campaign) => sum + calculateTotalActualBudget(campaign), 0),
     [filteredCampaigns]
   );
 

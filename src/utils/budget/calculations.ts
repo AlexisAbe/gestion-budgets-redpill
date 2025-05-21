@@ -38,10 +38,21 @@ export function calculateTotalBudget(campaign: { weeklyBudgets: Record<string, n
  * Calculate the total actual budget spent
  */
 export function calculateTotalActualBudget(campaign: { actualBudgets?: Record<string, number> }): number {
+  // Ajout d'un log de debug pour voir ce qui est passé à cette fonction
+  console.log('Calculating actual budget for campaign with actualBudgets:', campaign.actualBudgets);
+  
   if (!campaign.actualBudgets || Object.keys(campaign.actualBudgets).length === 0) {
     return 0;
   }
-  return Object.values(campaign.actualBudgets).reduce((sum, amount) => sum + amount, 0);
+  
+  // Log pour voir les valeurs individuelles
+  const values = Object.values(campaign.actualBudgets);
+  console.log('Actual budget values:', values);
+  
+  const total = values.reduce((sum, amount) => sum + (typeof amount === 'number' ? amount : 0), 0);
+  console.log('Calculated total actual budget:', total);
+  
+  return total;
 }
 
 /**
