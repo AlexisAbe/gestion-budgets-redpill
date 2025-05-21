@@ -9,8 +9,10 @@ import { useCampaignStore } from '@/store/campaignStore';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useClientStore } from '@/store/clientStore';
+// import { useCampaigns } from '@/features/campaigns/hooks';
 
 const Index = () => {
+  // Pour l'instant, on garde l'ancien store, nous ferons la migration complète ultérieurement
   const { fetchCampaigns, filteredCampaigns, isLoading } = useCampaignStore();
   const { selectedClientId, clients } = useClientStore();
   
@@ -18,6 +20,8 @@ const Index = () => {
     ? clients.find(client => client.id === selectedClientId) 
     : null;
 
+  // Pour une migration progressive, on conserve l'ancien système de fetch
+  // puis nous passerons à React Query
   useEffect(() => {
     fetchCampaigns();
   }, [fetchCampaigns, selectedClientId]); // Refetch when client changes
