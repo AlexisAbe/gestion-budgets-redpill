@@ -63,7 +63,7 @@ export const createBudgetActions = (set: any, get: () => CampaignState) => ({
     campaignId: string, 
     distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual',
     percentages?: Record<string, number>,
-    applyGlobally?: boolean
+    applyGlobally: boolean = false
   ) => {
     try {
       // Get the weeks from the store to pass to the service
