@@ -1,56 +1,75 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Campaign, MediaChannel } from '@/types/campaign';
-import { calculateTotalBudget, calculateTotalActualBudget } from '@/utils/budget/calculations';
+import { Campaign, MediaChannel, AdSet } from '@/types/campaign';
+import { calculateTotalBudget } from '@/utils/budget/calculations';
+import { useAdSetStore } from '@/store/adSetStore';
+import { useMemo } from 'react';
 
 interface ChannelBudgetSummaryProps {
   campaigns: Campaign[];
 }
 
 export function ChannelBudgetSummary({ campaigns }: ChannelBudgetSummaryProps) {
-  // Group campaigns by channel
-  const channelGroups = campaigns.reduce<Record<string, Campaign[]>>((acc, campaign) => {
-    const channel = campaign.mediaChannel;
-    if (!acc[channel]) {
-      acc[channel] = [];
-    }
-    acc[channel].push(campaign);
-    return acc;
-  }, {});
+  // Récupérer les ad sets depuis le store
+  const { adSets } = useAdSetStore();
 
-  // Calculate totals for each channel
-  const channelSummaries = Object.entries(channelGroups).map(([channel, channelCampaigns]) => {
-    const plannedBudget = channelCampaigns.reduce((sum, campaign) => 
-      sum + calculateTotalBudget(campaign), 0);
-    
-    const actualBudget = channelCampaigns.reduce((sum, campaign) => 
-      sum + calculateTotalActualBudget(campaign), 0);
-    
+  // Calculer les données par canal en tenant compte des ad sets
+  const { channelSummaries, totalPlanned, totalActual } = useMemo(() => {
+    // Group campaigns by channel
+    const channelGroups = campaigns.reduce<Record<string, Campaign[]>>((acc, campaign) => {
+      const channel = campaign.mediaChannel;
+      if (!acc[channel]) {
+        acc[channel] = [];
+      }
+      acc[channel].push(campaign);
+      return acc;
+    }, {});
+
+    // Calculate totals for each channel
+    const summaries = Object.entries(channelGroups).map(([channel, channelCampaigns]) => {
+      // Calculate planned budget from campaign weekly budgets
+      const plannedBudget = channelCampaigns.reduce((sum, campaign) => 
+        sum + calculateTotalBudget(campaign), 0);
+      
+      // Get all ad sets for these campaigns
+      const channelAdSets: AdSet[] = [];
+      channelCampaigns.forEach(campaign => {
+        const campaignAdSets = adSets[campaign.id] || [];
+        channelAdSets.push(...campaignAdSets);
+      });
+      
+      // Calculate actual budget from ad sets
+      const actualBudget = channelAdSets.reduce((sum, adSet) => {
+        if (!adSet.actualBudgets) return sum;
+        return sum + Object.values(adSet.actualBudgets).reduce((adSetSum, amount) => {
+          const numAmount = typeof amount === 'number' ? amount : parseFloat(String(amount)) || 0;
+          return adSetSum + numAmount;
+        }, 0);
+      }, 0);
+      
+      return {
+        channel,
+        plannedBudget,
+        actualBudget,
+        campaignCount: channelCampaigns.length
+      };
+    });
+
+    // Calculate totals
+    const totalPlannedBudget = summaries.reduce((sum, summary) => sum + summary.plannedBudget, 0);
+    const totalActualBudget = summaries.reduce((sum, summary) => sum + summary.actualBudget, 0);
+
     return {
-      channel,
-      plannedBudget,
-      actualBudget,
-      campaignCount: channelCampaigns.length
+      channelSummaries: summaries,
+      totalPlanned: totalPlannedBudget,
+      totalActual: totalActualBudget
     };
-  });
+  }, [campaigns, adSets]);
 
-  // Debug logging to help diagnose the issue
-  console.log('Channel summaries with actual budgets:', channelSummaries);
-  if (channelSummaries.length > 0) {
-    console.log('First channel actual budget details:', channelSummaries[0]);
-    
-    // Debug the first campaign in the first channel to see its actualBudgets
-    const firstChannel = Object.values(channelGroups)[0];
-    if (firstChannel && firstChannel.length > 0) {
-      console.log('First campaign actual budgets:', firstChannel[0].actualBudgets);
-    }
-  }
+  // Debug logging
+  console.log('Channel summaries with actual budgets from ad sets:', channelSummaries);
   
-  // Create total summary
-  const totalPlanned = channelSummaries.reduce((sum, summary) => sum + summary.plannedBudget, 0);
-  const totalActual = channelSummaries.reduce((sum, summary) => sum + summary.actualBudget, 0);
-
   return (
     <Card className="w-full">
       <CardHeader>
