@@ -12,3 +12,6 @@ export * from './distribution';
 
 // Re-export all from formatting module
 export * from './formatting';
+
+// Re-export functions for backward compatibility
+export { distributeEvenlyAcrossWeeks } from './distribution';
