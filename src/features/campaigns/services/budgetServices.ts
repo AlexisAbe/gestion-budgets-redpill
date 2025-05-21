@@ -71,14 +71,17 @@ export async function updateActualBudgetService(
     // Handle the case where the actual_budgets column might not exist yet in the database
     let actualBudgets: Record<string, any> = {};
     
-    // Check if the campaign has actual_budgets field and it's not null
-    if (campaign && 'actual_budgets' in campaign && campaign.actual_budgets) {
-      actualBudgets = (campaign.actual_budgets as Record<string, any>) || {};
-    } else if (campaign && campaign.weekly_budgets) {
-      // If actual_budgets doesn't exist yet, check if it's stored in weekly_budgets under __actual_budgets__
-      const weeklyBudgets = campaign.weekly_budgets as Record<string, any> || {};
-      if (typeof weeklyBudgets === 'object' && '__actual_budgets__' in weeklyBudgets) {
-        actualBudgets = weeklyBudgets.__actual_budgets__ as Record<string, any> || {};
+    // Make sure we have valid campaign data before proceeding
+    if (campaign) {
+      // Check if the campaign has actual_budgets field and it's not null
+      if ('actual_budgets' in campaign && campaign.actual_budgets) {
+        actualBudgets = (campaign.actual_budgets as Record<string, any>) || {};
+      } else if ('weekly_budgets' in campaign && campaign.weekly_budgets) {
+        // If actual_budgets doesn't exist yet, check if it's stored in weekly_budgets under __actual_budgets__
+        const weeklyBudgets = campaign.weekly_budgets as Record<string, any> || {};
+        if (typeof weeklyBudgets === 'object' && '__actual_budgets__' in weeklyBudgets) {
+          actualBudgets = weeklyBudgets.__actual_budgets__ as Record<string, any> || {};
+        }
       }
     }
     
