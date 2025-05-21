@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -14,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
 
 interface BudgetDistributionModalProps {
   campaign: Campaign;
@@ -33,6 +35,7 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
   const { autoDistributeBudget, weeks } = useCampaignStore();
   const [weekPercentages, setWeekPercentages] = useState<WeekPercentage[]>([]);
   const [totalPercentage, setTotalPercentage] = useState(100);
+  const [useGlobalPercentages, setUseGlobalPercentages] = useState(false);
   
   // Filter weeks to only include those that overlap with the campaign
   const campaignStart = new Date(campaign.startDate);
@@ -81,7 +84,7 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
   const handleDistribute = () => {
     if (activeTab === 'auto') {
       // No need to provide a third argument for auto distribution methods
-      autoDistributeBudget(campaign.id, selectedMethod);
+      autoDistributeBudget(campaign.id, selectedMethod, undefined, useGlobalPercentages);
     } else {
       // For manual distribution, check if percentages add up to 100%
       if (Math.abs(totalPercentage - 100) > 0.1) {
@@ -99,8 +102,8 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
         percentageObject[week.weekLabel] = week.percentage;
       });
       
-      // Pass the explicit 'manual' type and the percentages
-      autoDistributeBudget(campaign.id, 'manual', percentageObject);
+      // Pass the explicit 'manual' type, the percentages, and the useGlobalPercentages flag
+      autoDistributeBudget(campaign.id, 'manual', percentageObject, useGlobalPercentages);
     }
     
     onClose();
@@ -118,6 +121,22 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
           <p className="text-sm text-muted-foreground mb-4">
             Choisissez comment distribuer {campaign.totalBudget.toLocaleString('fr-FR')}€ sur la durée de la campagne ({campaign.durationDays} jours)
           </p>
+          
+          <div className="flex items-center space-x-2 mb-4">
+            <Switch
+              id="use-global-percentages"
+              checked={useGlobalPercentages}
+              onCheckedChange={setUseGlobalPercentages}
+            />
+            <Label htmlFor="use-global-percentages">
+              Appliquer globalement à toutes les campagnes
+            </Label>
+            {useGlobalPercentages && (
+              <div className="rounded-md bg-amber-50 p-2 text-xs text-amber-800 ml-2">
+                Cette distribution sera appliquée à toutes les campagnes
+              </div>
+            )}
+          </div>
           
           <Tabs defaultValue="auto" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full">

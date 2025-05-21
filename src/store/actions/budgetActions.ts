@@ -62,19 +62,42 @@ export const createBudgetActions = (set: any, get: () => CampaignState) => ({
   autoDistributeBudget: async (
     campaignId: string, 
     distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual',
-    percentages?: Record<string, number>
+    percentages?: Record<string, number>,
+    applyGlobally?: boolean
   ) => {
     try {
       // Get the weeks from the store to pass to the service
       const currentWeeks = get().weeks;
       
-      await autoDistributeBudgetService(
-        campaignId, 
-        distributionStrategy,
-        get().campaigns, 
-        currentWeeks, 
-        percentages
-      );
+      // If applying globally, we need to handle multiple campaigns
+      if (applyGlobally) {
+        const { selectedClientId } = useClientStore.getState();
+        
+        // Get campaigns based on selected client (or all if no client selected)
+        const targetCampaigns = selectedClientId
+          ? get().campaigns.filter(campaign => campaign.clientId === selectedClientId)
+          : get().campaigns;
+          
+        // Apply distribution to each campaign
+        for (const campaign of targetCampaigns) {
+          await autoDistributeBudgetService(
+            campaign.id,
+            distributionStrategy,
+            get().campaigns,
+            currentWeeks,
+            percentages
+          );
+        }
+      } else {
+        // Just apply to the single specified campaign
+        await autoDistributeBudgetService(
+          campaignId, 
+          distributionStrategy,
+          get().campaigns, 
+          currentWeeks, 
+          percentages
+        );
+      }
       
       const updatedCampaigns = await fetchCampaignsService();
       
