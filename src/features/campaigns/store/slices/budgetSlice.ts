@@ -1,5 +1,6 @@
 
 import { CampaignState } from '../types';
+import { Campaign } from '@/types/campaign';
 import { updateWeeklyBudgetService, updateActualBudgetService } from '../../services';
 import { distributeBudget } from '@/utils/budget/distribution';
 

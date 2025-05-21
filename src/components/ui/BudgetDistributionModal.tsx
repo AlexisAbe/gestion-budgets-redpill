@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -83,7 +82,7 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
 
   const handleDistribute = () => {
     if (activeTab === 'auto') {
-      // No need to provide a third argument for auto distribution methods
+      // Updated to use the correct number of arguments
       autoDistributeBudget(campaign.id, selectedMethod, undefined, useGlobalPercentages);
     } else {
       // For manual distribution, check if percentages add up to 100%
@@ -102,7 +101,7 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
         percentageObject[week.weekLabel] = week.percentage;
       });
       
-      // Pass the explicit 'manual' type, the percentages, and the useGlobalPercentages flag
+      // Updated to use the correct number of arguments
       autoDistributeBudget(campaign.id, 'manual', percentageObject, useGlobalPercentages);
     }
     
