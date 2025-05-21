@@ -65,6 +65,7 @@ export function InlineAdSets({ campaign, adSets, weeks, campaignWeeks, isLoading
         weeks={weeks}
         campaignWeeks={campaignWeeks}
         weeklyPlannedTotals={weeklyPlannedTotals}
+        adSets={adSets}
       />
     </>
   );

@@ -3,15 +3,17 @@ import React from 'react';
 import { Campaign, WeeklyView } from '@/types/campaign';
 import { formatCurrency } from '@/utils/budgetUtils';
 import { BadgeDollarSign } from 'lucide-react';
+import { calculateWeeklyAdSetsActualBudget } from '@/utils/budget/calculations';
 
 interface BudgetSummaryRowsProps {
   campaign: Campaign;
   weeks: WeeklyView[];
   campaignWeeks: number[];
   weeklyPlannedTotals: Record<string, number>;
+  adSets: Array<{ actualBudgets?: Record<string, number> }>;
 }
 
-export function BudgetSummaryRows({ campaign, weeks, campaignWeeks, weeklyPlannedTotals }: BudgetSummaryRowsProps) {
+export function BudgetSummaryRows({ campaign, weeks, campaignWeeks, weeklyPlannedTotals, adSets }: BudgetSummaryRowsProps) {
   return (
     <>
       <PlannedBudgetRow 
@@ -24,6 +26,7 @@ export function BudgetSummaryRows({ campaign, weeks, campaignWeeks, weeklyPlanne
         campaign={campaign}
         weeks={weeks}
         campaignWeeks={campaignWeeks}
+        adSets={adSets}
       />
     </>
   );
@@ -69,9 +72,10 @@ interface ActualBudgetRowProps {
   campaign: Campaign;
   weeks: WeeklyView[];
   campaignWeeks: number[];
+  adSets: Array<{ actualBudgets?: Record<string, number> }>;
 }
 
-function ActualBudgetRow({ campaign, weeks, campaignWeeks }: ActualBudgetRowProps) {
+function ActualBudgetRow({ campaign, weeks, campaignWeeks, adSets }: ActualBudgetRowProps) {
   return (
     <tr className="border-t border-gray-300 bg-muted/10">
       <td colSpan={8} className="px-3 py-2 text-xs font-bold">
@@ -83,8 +87,10 @@ function ActualBudgetRow({ campaign, weeks, campaignWeeks }: ActualBudgetRowProp
       {weeks.map(week => {
         const isInCampaign = campaignWeeks.includes(week.weekNumber);
         const weekLabel = week.weekLabel;
-        const actualBudget = campaign.actualBudgets && campaign.actualBudgets[weekLabel] || 0;
         const plannedBudget = campaign.weeklyBudgets[weekLabel] || 0;
+        
+        // Calculate actual budget by summing up all ad sets' actual budgets for this week
+        const actualBudget = calculateWeeklyAdSetsActualBudget(adSets, weekLabel);
         
         // Déterminer la classe de couleur en fonction de l'écart entre réel et prévu
         const isOverBudget = actualBudget > plannedBudget;
