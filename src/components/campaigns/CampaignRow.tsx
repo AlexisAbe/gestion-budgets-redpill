@@ -41,7 +41,7 @@ export function CampaignRow({
   // Fetch ad sets only when inline display is enabled and we haven't loaded them yet
   useEffect(() => {
     const campaignAdSets = adSets[campaign.id];
-    const shouldFetch = showInlineAdSets && 
+    const shouldFetch = (showInlineAdSets || showAdSets) && 
                        !isLoading && 
                        (!campaignAdSets || campaignAdSets.length === 0) && 
                        !hasTriedFetching;
@@ -50,7 +50,7 @@ export function CampaignRow({
       setHasTriedFetching(true);
       fetchAdSets(campaign.id);
     }
-  }, [showInlineAdSets, campaign.id, fetchAdSets, adSets, isLoading, hasTriedFetching]);
+  }, [showInlineAdSets, showAdSets, campaign.id, fetchAdSets, adSets, isLoading, hasTriedFetching]);
   
   // Get campaign weeks (which weeks this campaign runs in)
   const campaignWeeks = getCampaignWeeks(campaign.startDate, campaign.durationDays, weeks);
@@ -73,6 +73,7 @@ export function CampaignRow({
           getMediaChannelClass={getMediaChannelClass}
           getObjectiveClass={getObjectiveClass}
           totalAdSetsActualBudget={totalAdSetsActualBudget}
+          adSets={campaignAdSets}
         />
         {/* Replace the last cell with CampaignActions */}
         <td className="px-3 py-2 align-middle">

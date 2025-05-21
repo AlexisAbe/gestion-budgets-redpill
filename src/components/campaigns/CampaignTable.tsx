@@ -79,22 +79,44 @@ export function CampaignTable() {
           <table className="min-w-full divide-y divide-border">
             <thead>
               <tr className="bg-muted/50">
-                <th className="fixed-column-header sticky left-0 z-20 bg-muted/50">Channel</th>
-                <th className="fixed-column-header sticky left-[100px] z-20 bg-muted/50">Campaign</th>
-                <th className="fixed-column-header">Objective</th>
-                <th className="fixed-column-header">Target</th>
-                <th className="fixed-column-header">Start</th>
-                <th className="fixed-column-header">Budget</th>
-                <th className="fixed-column-header">Days</th>
-                <th className="fixed-column-header">Actions</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky left-0 z-20 bg-muted/50">
+                  Campagne
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Canal
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Objectif
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Cible
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Budget
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Période
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Dépensé
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Actions
+                </th>
                 
                 {/* Weekly headers - filtered by selected range */}
                 {visibleWeeks.map(week => (
-                  <th key={week.weekLabel} className="week-header">
+                  <th 
+                    key={week.weekLabel} 
+                    className="px-3 py-2 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider border-l"
+                  >
                     <div className="flex flex-col items-center">
                       <span>{week.weekLabel}</span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-[10px] text-muted-foreground mt-1">
                         {formatDayMonth(week.startDate)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        Prévu/Réel
                       </span>
                     </div>
                   </th>

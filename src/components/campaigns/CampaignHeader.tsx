@@ -3,6 +3,10 @@ import React, { useState } from 'react';
 import { Campaign, WeeklyView } from '@/types/campaign';
 import { formatCurrency } from '@/utils/budgetUtils';
 import { Badge } from '@/components/ui/badge';
+import { 
+  calculateWeeklyAdSetsActualBudget,
+  calculateTotalAdSetsWeeklyBudget
+} from '@/utils/budget/calculations';
 
 interface CampaignHeaderProps {
   campaign: Campaign;
@@ -11,6 +15,7 @@ interface CampaignHeaderProps {
   getMediaChannelClass: (mediaChannel: string) => string;
   getObjectiveClass: (objective: string) => string;
   totalAdSetsActualBudget?: number;
+  adSets?: Array<{ actualBudgets?: Record<string, number>, budgetPercentage: number }>;
 }
 
 export function CampaignHeader({
@@ -19,7 +24,8 @@ export function CampaignHeader({
   campaignWeeks,
   getMediaChannelClass,
   getObjectiveClass,
-  totalAdSetsActualBudget = 0
+  totalAdSetsActualBudget = 0,
+  adSets = []
 }: CampaignHeaderProps) {
   // Vérifier les dates de début et de fin
   const startDate = new Date(campaign.startDate);
@@ -92,6 +98,58 @@ export function CampaignHeader({
           <span>{campaign.id.substring(0, 8)}</span>
         </div>
       </td>
+
+      {/* Ajout des résumés hebdomadaires */}
+      {weeks.map(week => {
+        const isInCampaign = campaignWeeks.includes(week.weekNumber);
+        const weekLabel = week.weekLabel;
+        
+        // Budget prévisionnel de la semaine
+        const plannedBudget = campaign.weeklyBudgets[weekLabel] || 0;
+        
+        // Budget réel dépensé pour cette semaine (tous les ad sets)
+        const actualBudget = calculateWeeklyAdSetsActualBudget(adSets, weekLabel);
+        
+        // Déterminer la classe de couleur en fonction de l'écart entre réel et prévu
+        const isOverBudget = actualBudget > plannedBudget && plannedBudget > 0;
+        const isWithinBudget = actualBudget > 0 && actualBudget <= plannedBudget * 0.98 && plannedBudget > 0;
+        
+        let textColorClass = '';
+        if (actualBudget > 0) {
+          textColorClass = isOverBudget ? 'text-red-600' : isWithinBudget ? 'text-green-600' : 'text-blue-600';
+        }
+        
+        return (
+          <td 
+            key={`campaign-summary-${campaign.id}-${weekLabel}`}
+            className={`px-3 py-2 text-xs border-l ${!isInCampaign ? 'bg-muted/20' : ''}`}
+          >
+            {isInCampaign && plannedBudget > 0 ? (
+              <div className="flex flex-col space-y-1">
+                <div className="font-medium text-green-600">
+                  {formatCurrency(plannedBudget)}
+                </div>
+                
+                {actualBudget > 0 && (
+                  <div className={`font-medium ${textColorClass}`}>
+                    {formatCurrency(actualBudget)}
+                    {isOverBudget && (
+                      <span className="ml-1 bg-red-100 text-red-600 px-1 py-0.5 rounded text-[10px]">
+                        +{((actualBudget / plannedBudget - 1) * 100).toFixed(0)}%
+                      </span>
+                    )}
+                    {isWithinBudget && (
+                      <span className="ml-1 bg-green-100 text-green-600 px-1 py-0.5 rounded text-[10px]">
+                        {((actualBudget / plannedBudget) * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </td>
+        );
+      })}
     </>
   );
 }
