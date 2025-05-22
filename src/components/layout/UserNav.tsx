@@ -19,6 +19,7 @@ import { useState } from "react";
 import { BackupManager } from '@/components/backup/BackupManager';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Archive } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function UserNav() {
   const { user, signOut } = useAuth();
@@ -59,8 +60,8 @@ export function UserNav() {
             <DropdownMenuItem>
               Profil
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              Paramètres
+            <DropdownMenuItem asChild>
+              <Link to="/settings">Paramètres</Link>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShowBackups(true)}>
               <Archive className="h-4 w-4 mr-2" />

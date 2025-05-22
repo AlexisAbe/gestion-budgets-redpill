@@ -6,7 +6,7 @@ import {
   Home, 
   BarChart3, 
   Users, 
-  Settings as SettingsIcon, 
+  Settings, 
   HelpCircle, 
   LayoutDashboard 
 } from 'lucide-react';
@@ -30,7 +30,7 @@ const links = [
   {
     name: 'Paramètres',
     href: '/settings',
-    icon: SettingsIcon,
+    icon: Settings,
   },
   {
     name: 'Aide',
