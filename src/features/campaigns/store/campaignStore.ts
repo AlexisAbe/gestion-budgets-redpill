@@ -5,6 +5,7 @@ import { createFetchSlice } from './slices/fetchSlice';
 import { createMutationSlice } from './slices/mutationSlice';
 import { createBudgetSlice } from './slices/budgetSlice';
 import { generateWeeksForYear } from '@/utils/dateUtils';
+import { useGlobalBudgetStore } from '@/store/globalBudgetStore';
 
 // Create the campaign store with modular slices
 export const useCampaignStore = create<CampaignState>()((set, get) => {
@@ -21,5 +22,10 @@ export const useCampaignStore = create<CampaignState>()((set, get) => {
     resetStore: () => {
       set(initialCampaignState);
     },
+    
+    // Add saveGlobalPercentages
+    saveGlobalPercentages: (percentages: Record<string, number>) => {
+      useGlobalBudgetStore.getState().setWeeklyPercentages(percentages);
+    }
   };
 });
