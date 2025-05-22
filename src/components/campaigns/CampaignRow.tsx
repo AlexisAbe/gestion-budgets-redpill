@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Campaign, WeeklyView, AdSet } from '@/types/campaign';
 import { useCampaignStore } from '@/store/campaignStore';
@@ -162,7 +163,7 @@ export function CampaignRow({
       
       <BudgetDistributionModal 
         open={isDistributionOpen}
-        onClose={() => setIsDistributionOpen(false)}
+        onOpenChange={setIsDistributionOpen}
         campaign={campaign}
       />
 

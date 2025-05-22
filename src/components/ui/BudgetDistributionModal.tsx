@@ -8,27 +8,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Campaign, WeeklyView } from '@/types/campaign';
 import { useGlobalBudgetStore } from '@/store/globalBudgetStore';
+import { useCampaignStore } from '@/store/campaignStore';
 
 interface BudgetDistributionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   campaign: Campaign;
-  weeks: WeeklyView[];
-  onDistribute: (
-    campaignId: string,
-    distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual' | 'global',
-    percentages?: Record<string, number>
-  ) => Promise<void>;
 }
 
 export function BudgetDistributionModal({
   open,
   onOpenChange,
   campaign,
-  weeks,
-  onDistribute,
 }: BudgetDistributionModalProps) {
   const { weeklyPercentages, isInitialized } = useGlobalBudgetStore();
+  const { weeks, autoDistributeBudget } = useCampaignStore();
   const [selectedDistribution, setSelectedDistribution] = useState<'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual' | 'global'>('even');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [percentages, setPercentages] = useState<Record<string, number>>({});
@@ -88,11 +82,11 @@ export function BudgetDistributionModal({
     try {
       // Use global percentages if that distribution is selected
       if (selectedDistribution === 'global') {
-        await onDistribute(campaign.id, 'global');
+        await autoDistributeBudget(campaign.id, 'global');
       } else if (selectedDistribution === 'manual') {
-        await onDistribute(campaign.id, 'manual', percentages);
+        await autoDistributeBudget(campaign.id, 'manual', percentages);
       } else {
-        await onDistribute(campaign.id, selectedDistribution);
+        await autoDistributeBudget(campaign.id, selectedDistribution);
       }
       
       onOpenChange(false);
