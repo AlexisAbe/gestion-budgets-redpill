@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -15,7 +14,6 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { Switch } from '@/components/ui/switch';
 
 interface BudgetDistributionModalProps {
   campaign: Campaign;
@@ -29,12 +27,12 @@ interface WeekPercentage {
 }
 
 export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistributionModalProps) {
+  // Fix the type of selectedMethod to match the expected types in autoDistributeBudgetService
   const [selectedMethod, setSelectedMethod] = useState<'even' | 'front-loaded' | 'back-loaded' | 'bell-curve'>('even');
   const [activeTab, setActiveTab] = useState('auto');
-  const { autoDistributeBudget, weeks, globalPercentages } = useCampaignStore();
+  const { autoDistributeBudget, weeks } = useCampaignStore();
   const [weekPercentages, setWeekPercentages] = useState<WeekPercentage[]>([]);
   const [totalPercentage, setTotalPercentage] = useState(100);
-  const [useGlobalPercentages, setUseGlobalPercentages] = useState(false);
   
   // Filter weeks to only include those that overlap with the campaign
   const campaignStart = new Date(campaign.startDate);
@@ -50,26 +48,7 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
         return (campaignStart <= weekEnd && campaignEnd >= weekStart);
       });
       
-      if (useGlobalPercentages && globalPercentages) {
-        // If using global percentages and they're available, filter to relevant weeks
-        const filteredGlobalPercentages = globalPercentages.weeks
-          .filter(gp => relevantWeeks.some(rw => rw.weekLabel === gp.weekLabel))
-          .map(gp => ({
-            weekLabel: gp.weekLabel,
-            percentage: gp.percentage
-          }));
-          
-        if (filteredGlobalPercentages.length > 0) {
-          setWeekPercentages(filteredGlobalPercentages);
-          
-          // Calculate total (might not be 100% after filtering)
-          const total = filteredGlobalPercentages.reduce((sum, wp) => sum + wp.percentage, 0);
-          setTotalPercentage(total);
-          return;
-        }
-      }
-      
-      // Default initialization with equal percentages
+      // Initialize with equal percentages
       const weekCount = relevantWeeks.length;
       const initialPercentage = weekCount > 0 ? Math.floor(100 / weekCount) : 0;
       const remainder = 100 - (initialPercentage * weekCount);
@@ -83,7 +62,7 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
       setWeekPercentages(initialWeekPercentages);
       setTotalPercentage(100); // Reset to 100%
     }
-  }, [open, weeks, campaign, useGlobalPercentages, globalPercentages]);
+  }, [open, weeks, campaign]);
   
   const handlePercentageChange = (weekLabel: string, value: number) => {
     const newPercentages = weekPercentages.map(week => 
@@ -101,12 +80,8 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
 
   const handleDistribute = () => {
     if (activeTab === 'auto') {
-      // Auto distribution with global flag
-      autoDistributeBudget(
-        campaign.id, 
-        selectedMethod,
-        useGlobalPercentages  // Pass boolean directly
-      );
+      // No need to provide a third argument for auto distribution methods
+      autoDistributeBudget(campaign.id, selectedMethod);
     } else {
       // For manual distribution, check if percentages add up to 100%
       if (Math.abs(totalPercentage - 100) > 0.1) {
@@ -124,19 +99,12 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
         percentageObject[week.weekLabel] = week.percentage;
       });
       
-      // If global percentages is enabled, pass the boolean flag
-      // Otherwise, pass the percentage object
-      if (useGlobalPercentages) {
-        autoDistributeBudget(campaign.id, 'manual', true);
-      } else {
-        autoDistributeBudget(campaign.id, 'manual', percentageObject);
-      }
+      // Pass the explicit 'manual' type and the percentages
+      autoDistributeBudget(campaign.id, 'manual', percentageObject);
     }
     
     onClose();
   };
-
-  const hasGlobalPercentages = globalPercentages !== null;
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
@@ -150,28 +118,6 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
           <p className="text-sm text-muted-foreground mb-4">
             Choisissez comment distribuer {campaign.totalBudget.toLocaleString('fr-FR')}€ sur la durée de la campagne ({campaign.durationDays} jours)
           </p>
-          
-          <div className="flex items-center space-x-2 mb-4">
-            <Switch
-              id="use-global-percentages"
-              checked={useGlobalPercentages}
-              onCheckedChange={setUseGlobalPercentages}
-              disabled={!hasGlobalPercentages}
-            />
-            <Label htmlFor="use-global-percentages">
-              Utiliser les pourcentages globaux
-            </Label>
-            {!hasGlobalPercentages && (
-              <div className="rounded-md bg-amber-50 p-2 text-xs text-amber-800 ml-2">
-                Aucun pourcentage global défini. Allez dans Paramètres pour les configurer.
-              </div>
-            )}
-            {useGlobalPercentages && hasGlobalPercentages && (
-              <div className="rounded-md bg-green-50 p-2 text-xs text-green-800 ml-2">
-                Les pourcentages globaux seront appliqués
-              </div>
-            )}
-          </div>
           
           <Tabs defaultValue="auto" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full">
@@ -250,7 +196,6 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
                           className="w-20"
                           value={week.percentage}
                           onChange={(e) => handlePercentageChange(week.weekLabel, Number(e.target.value))}
-                          disabled={useGlobalPercentages && hasGlobalPercentages}
                         />
                         <span className="text-sm">%</span>
                       </div>

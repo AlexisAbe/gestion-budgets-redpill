@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import MainLayout from '@/components/layout/MainLayout';
+import { MainLayout } from '@/components/layout/MainLayout';
 import { CampaignHeader } from '@/components/dashboard/CampaignHeader';
 import { CampaignTable } from '@/components/campaigns/CampaignTable';
 import { ChannelBudgetSummary } from '@/components/dashboard/ChannelBudgetSummary';
@@ -27,30 +27,32 @@ const Index = () => {
   }, [fetchCampaigns, selectedClientId]); // Refetch when client changes
 
   return (
-    <div className="max-w-full overflow-x-hidden">
+    <MainLayout>
       <Toaster position="top-right" />
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="mt-2 text-muted-foreground">Chargement des campagnes...</p>
-        </div>
-      ) : (
-        <div className="space-y-8">
-          {currentClient && (
-            <div className="mb-4">
-              <h1 className="text-2xl font-bold">{currentClient.name}</h1>
-              <p className="text-muted-foreground">Plateforme de gestion de budget média</p>
-            </div>
-          )}
-          
-          <CampaignHeader />
-          
-          <ChannelBudgetSummary campaigns={filteredCampaigns} />
-          
-          <CampaignTable />
-        </div>
-      )}
-    </div>
+      <div className="max-w-full overflow-x-hidden">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-[50vh]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="mt-2 text-muted-foreground">Chargement des campagnes...</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {currentClient && (
+              <div className="mb-4">
+                <h1 className="text-2xl font-bold">{currentClient.name}</h1>
+                <p className="text-muted-foreground">Plateforme de gestion de budget média</p>
+              </div>
+            )}
+            
+            <CampaignHeader />
+            
+            <ChannelBudgetSummary campaigns={filteredCampaigns} />
+            
+            <CampaignTable />
+          </div>
+        )}
+      </div>
+    </MainLayout>
   );
 };
 

@@ -1,4 +1,5 @@
-import { CampaignState, GlobalPercentageSettings } from '../types/campaignStoreTypes';
+
+import { CampaignState } from '../types/campaignStoreTypes';
 import { updateWeeklyBudgetService, autoDistributeBudgetService, fetchCampaignsService } from '../services/campaign';
 import { useClientStore } from '../clientStore';
 
@@ -61,42 +62,19 @@ export const createBudgetActions = (set: any, get: () => CampaignState) => ({
   autoDistributeBudget: async (
     campaignId: string, 
     distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual',
-    percentagesOrApplyGlobally?: Record<string, number> | boolean,
-    applyGlobally: boolean = false
+    percentages?: Record<string, number>
   ) => {
     try {
       // Get the weeks from the store to pass to the service
       const currentWeeks = get().weeks;
       
-      // If applying globally, we need to handle multiple campaigns
-      if (applyGlobally) {
-        const { selectedClientId } = useClientStore.getState();
-        
-        // Get campaigns based on selected client (or all if no client selected)
-        const targetCampaigns = selectedClientId
-          ? get().campaigns.filter(campaign => campaign.clientId === selectedClientId)
-          : get().campaigns;
-          
-        // Apply distribution to each campaign
-        for (const campaign of targetCampaigns) {
-          await autoDistributeBudgetService(
-            campaign.id,
-            distributionStrategy,
-            get().campaigns,
-            currentWeeks,
-            percentagesOrApplyGlobally as Record<string, number>
-          );
-        }
-      } else {
-        // Just apply to the single specified campaign
-        await autoDistributeBudgetService(
-          campaignId, 
-          distributionStrategy,
-          get().campaigns, 
-          currentWeeks, 
-          percentagesOrApplyGlobally as Record<string, number>
-        );
-      }
+      await autoDistributeBudgetService(
+        campaignId, 
+        distributionStrategy,
+        get().campaigns, 
+        currentWeeks, 
+        percentages
+      );
       
       const updatedCampaigns = await fetchCampaignsService();
       
@@ -114,15 +92,5 @@ export const createBudgetActions = (set: any, get: () => CampaignState) => ({
       console.error('Error auto distributing budget:', error);
       set({ error: error instanceof Error ? error.message : 'An unknown error occurred' });
     }
-  },
-  
-  // Add saveGlobalPercentages to the budget actions
-  saveGlobalPercentages: (percentages: GlobalPercentageSettings): void => {
-    // Save to localStorage for persistence
-    localStorage.setItem('globalBudgetPercentages', JSON.stringify(percentages));
-    
-    set((state: CampaignState) => ({
-      globalPercentages: percentages
-    }));
   }
 });
