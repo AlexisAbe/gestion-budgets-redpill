@@ -1,5 +1,4 @@
-
-import { CampaignState } from '../types/campaignStoreTypes';
+import { CampaignState, GlobalPercentageSettings } from '../types/campaignStoreTypes';
 import { updateWeeklyBudgetService, autoDistributeBudgetService, fetchCampaignsService } from '../services/campaign';
 import { useClientStore } from '../clientStore';
 
@@ -62,7 +61,7 @@ export const createBudgetActions = (set: any, get: () => CampaignState) => ({
   autoDistributeBudget: async (
     campaignId: string, 
     distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual',
-    percentages?: Record<string, number>,
+    percentagesOrApplyGlobally?: Record<string, number> | boolean,
     applyGlobally: boolean = false
   ) => {
     try {
@@ -85,7 +84,7 @@ export const createBudgetActions = (set: any, get: () => CampaignState) => ({
             distributionStrategy,
             get().campaigns,
             currentWeeks,
-            percentages
+            percentagesOrApplyGlobally as Record<string, number>
           );
         }
       } else {
@@ -95,7 +94,7 @@ export const createBudgetActions = (set: any, get: () => CampaignState) => ({
           distributionStrategy,
           get().campaigns, 
           currentWeeks, 
-          percentages
+          percentagesOrApplyGlobally as Record<string, number>
         );
       }
       
@@ -115,5 +114,15 @@ export const createBudgetActions = (set: any, get: () => CampaignState) => ({
       console.error('Error auto distributing budget:', error);
       set({ error: error instanceof Error ? error.message : 'An unknown error occurred' });
     }
+  },
+  
+  // Add saveGlobalPercentages to the budget actions
+  saveGlobalPercentages: (percentages: GlobalPercentageSettings): void => {
+    // Save to localStorage for persistence
+    localStorage.setItem('globalBudgetPercentages', JSON.stringify(percentages));
+    
+    set((state: CampaignState) => ({
+      globalPercentages: percentages
+    }));
   }
 });
