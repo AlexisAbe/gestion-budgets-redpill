@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -28,10 +29,9 @@ interface WeekPercentage {
 }
 
 export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistributionModalProps) {
-  // Fix the type of selectedMethod to match the expected types in autoDistributeBudgetService
   const [selectedMethod, setSelectedMethod] = useState<'even' | 'front-loaded' | 'back-loaded' | 'bell-curve'>('even');
   const [activeTab, setActiveTab] = useState('auto');
-  const { autoDistributeBudget, weeks } = useCampaignStore();
+  const { autoDistributeBudget, weeks, globalPercentages } = useCampaignStore();
   const [weekPercentages, setWeekPercentages] = useState<WeekPercentage[]>([]);
   const [totalPercentage, setTotalPercentage] = useState(100);
   const [useGlobalPercentages, setUseGlobalPercentages] = useState(false);
@@ -50,7 +50,26 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
         return (campaignStart <= weekEnd && campaignEnd >= weekStart);
       });
       
-      // Initialize with equal percentages
+      if (useGlobalPercentages && globalPercentages) {
+        // If using global percentages and they're available, filter to relevant weeks
+        const filteredGlobalPercentages = globalPercentages.weeks
+          .filter(gp => relevantWeeks.some(rw => rw.weekLabel === gp.weekLabel))
+          .map(gp => ({
+            weekLabel: gp.weekLabel,
+            percentage: gp.percentage
+          }));
+          
+        if (filteredGlobalPercentages.length > 0) {
+          setWeekPercentages(filteredGlobalPercentages);
+          
+          // Calculate total (might not be 100% after filtering)
+          const total = filteredGlobalPercentages.reduce((sum, wp) => sum + wp.percentage, 0);
+          setTotalPercentage(total);
+          return;
+        }
+      }
+      
+      // Default initialization with equal percentages
       const weekCount = relevantWeeks.length;
       const initialPercentage = weekCount > 0 ? Math.floor(100 / weekCount) : 0;
       const remainder = 100 - (initialPercentage * weekCount);
@@ -64,7 +83,7 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
       setWeekPercentages(initialWeekPercentages);
       setTotalPercentage(100); // Reset to 100%
     }
-  }, [open, weeks, campaign]);
+  }, [open, weeks, campaign, useGlobalPercentages, globalPercentages]);
   
   const handlePercentageChange = (weekLabel: string, value: number) => {
     const newPercentages = weekPercentages.map(week => 
@@ -117,6 +136,8 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
     onClose();
   };
 
+  const hasGlobalPercentages = globalPercentages !== null;
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
       if (!isOpen) onClose();
@@ -135,13 +156,19 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
               id="use-global-percentages"
               checked={useGlobalPercentages}
               onCheckedChange={setUseGlobalPercentages}
+              disabled={!hasGlobalPercentages}
             />
             <Label htmlFor="use-global-percentages">
-              Appliquer globalement à toutes les campagnes
+              Utiliser les pourcentages globaux
             </Label>
-            {useGlobalPercentages && (
+            {!hasGlobalPercentages && (
               <div className="rounded-md bg-amber-50 p-2 text-xs text-amber-800 ml-2">
-                Cette distribution sera appliquée à toutes les campagnes
+                Aucun pourcentage global défini. Allez dans Paramètres pour les configurer.
+              </div>
+            )}
+            {useGlobalPercentages && hasGlobalPercentages && (
+              <div className="rounded-md bg-green-50 p-2 text-xs text-green-800 ml-2">
+                Les pourcentages globaux seront appliqués
               </div>
             )}
           </div>
@@ -223,6 +250,7 @@ export function BudgetDistributionModal({ campaign, open, onClose }: BudgetDistr
                           className="w-20"
                           value={week.percentage}
                           onChange={(e) => handlePercentageChange(week.weekLabel, Number(e.target.value))}
+                          disabled={useGlobalPercentages && hasGlobalPercentages}
                         />
                         <span className="text-sm">%</span>
                       </div>

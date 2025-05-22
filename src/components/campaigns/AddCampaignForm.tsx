@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ import { useAdSetStore } from '@/store/adSetStore';
 import { useClientStore } from '@/store/clientStore';
 
 export function AddCampaignForm() {
-  const { addCampaign, isLoading, weeks } = useCampaignStore();
+  const { addCampaign, isLoading, weeks, globalPercentages, autoDistributeBudget } = useCampaignStore();
   const { addAdSet } = useAdSetStore();
   const { selectedClientId } = useClientStore();
   const [open, setOpen] = useState(false);
@@ -34,6 +35,7 @@ export function AddCampaignForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [includeAdSets, setIncludeAdSets] = useState(false);
+  const [useGlobalPercentages, setUseGlobalPercentages] = useState(false);
   const [adSetsData, setAdSetsData] = useState<Array<Omit<AdSet, "id" | "createdAt" | "updatedAt">>>([]);
   const [currentTab, setCurrentTab] = useState<'basic' | 'adsets'>('basic');
 
@@ -140,6 +142,11 @@ export function AddCampaignForm() {
         clientId: selectedClientId
       });
       
+      // Apply global percentages if requested
+      if (useGlobalPercentages && newCampaign && globalPercentages) {
+        await autoDistributeBudget(newCampaign.id, 'manual', true);
+      }
+      
       // If ad sets are included and campaign was created successfully
       if (includeAdSets && adSetsData.length > 0 && newCampaign) {
         console.log('Adding ad sets for campaign:', newCampaign.id);
@@ -167,6 +174,7 @@ export function AddCampaignForm() {
       });
       setAdSetsData([]);
       setIncludeAdSets(false);
+      setUseGlobalPercentages(false);
       
       toast({
         title: "Succès",
@@ -189,6 +197,8 @@ export function AddCampaignForm() {
   const handleAdSetsUpdate = (newAdSets: Array<Omit<AdSet, "id" | "createdAt" | "updatedAt">>) => {
     setAdSetsData(newAdSets);
   };
+  
+  const hasGlobalPercentages = globalPercentages !== null;
 
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
@@ -200,6 +210,7 @@ export function AddCampaignForm() {
         setFormErrors({});
         setErrorMessage(null);
         setIncludeAdSets(false);
+        setUseGlobalPercentages(false);
         setAdSetsData([]);
         setCurrentTab('basic');
       }
@@ -363,6 +374,25 @@ export function AddCampaignForm() {
                 <p className="text-xs text-muted-foreground">
                   {formatCurrency(formData.totalBudget)}
                 </p>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="useGlobalPercentages" 
+                checked={useGlobalPercentages}
+                onCheckedChange={(checked) => {
+                  setUseGlobalPercentages(!!checked);
+                }}
+                disabled={isSubmitting || !hasGlobalPercentages}
+              />
+              <Label htmlFor="useGlobalPercentages" className={`cursor-pointer ${!hasGlobalPercentages ? 'text-muted-foreground' : ''}`}>
+                Utiliser les pourcentages globaux pour la répartition du budget
+              </Label>
+              {!hasGlobalPercentages && (
+                <div className="rounded-md bg-amber-50 p-2 text-xs text-amber-800">
+                  Aucun pourcentage global défini. Allez dans Paramètres pour les configurer.
+                </div>
               )}
             </div>
 

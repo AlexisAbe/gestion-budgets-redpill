@@ -1,37 +1,65 @@
-import React from 'react';
-import { ModeToggle } from '@/components/ui/mode-toggle';
-import { UserNav } from './UserNav';
-import { useAuth } from '@/context/AuthContext';
-import { ClientSelector } from './ClientSelector';
-interface MainLayoutProps {
-  children: React.ReactNode;
-}
-export const MainLayout = ({
-  children
-}: MainLayoutProps) => {
-  const {
-    signOut
-  } = useAuth();
-  return <div className="min-h-screen bg-background overflow-x-hidden">
-      <header className="sticky top-0 z-40 border-b bg-background">
-        <div className="container px-4 flex h-14 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="font-bold text-lg mr-6">Suivi des campagnes</h1>
-            <ClientSelector />
-          </div>
-          <div className="flex items-center gap-4">
-            <ModeToggle />
+
+import React from "react";
+import { Outlet } from "react-router-dom";
+import { Sidebar } from "../ui/sidebar";
+import { NavLink } from "react-router-dom";
+import { ClientSelector } from "./ClientSelector";
+import { UserNav } from "./UserNav";
+import { Separator } from "../ui/separator";
+import { ModeToggle } from "../ui/mode-toggle";
+import { BarChart3, Settings, Home } from "lucide-react";
+
+export default function MainLayout() {
+  return (
+    <div className="flex min-h-screen bg-background">
+      <Sidebar>
+        <div className="px-4 py-4">
+          <h2 className="text-lg font-semibold tracking-tight">Marketing Budget</h2>
+          <p className="text-sm text-muted-foreground">Gestion des budgets marketing</p>
+        </div>
+        <Separator />
+        <div className="px-4 py-2">
+          <ClientSelector />
+        </div>
+        <Separator />
+        <nav className="grid items-start px-2 text-sm font-medium">
+          <NavLink
+            to="/"
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+                isActive
+                  ? "bg-accent text-primary"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`
+            }
+          >
+            <Home className="h-4 w-4" />
+            Campagnes
+          </NavLink>
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+                isActive
+                  ? "bg-accent text-primary"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`
+            }
+          >
+            <Settings className="h-4 w-4" />
+            Paramètres
+          </NavLink>
+        </nav>
+        <div className="mt-auto p-4">
+          <div className="flex items-center justify-between">
             <UserNav />
+            <ModeToggle />
           </div>
         </div>
-      </header>
-      <main className="container px-4 py-6 sm:py-8 md:py-10 space-y-8 overflow-x-hidden">
-        {children}
+      </Sidebar>
+      <main className="flex-1 overflow-auto">
+        <Outlet />
       </main>
-      <footer className="border-t py-4">
-        <div className="container px-4 text-center text-sm text-muted-foreground">
-          <p>Suivi des campagnes — 2025</p>
-        </div>
-      </footer>
-    </div>;
-};
+    </div>
+  );
+}

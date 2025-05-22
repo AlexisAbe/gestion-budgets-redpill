@@ -20,7 +20,16 @@ export const createAutoDistributeBudgetSlice = (set: any, get: () => CampaignSta
         percentages = percentagesOrApplyGlobally;
       }
 
-      const { campaigns, weeks, filteredCampaigns } = get();
+      const { campaigns, weeks, filteredCampaigns, globalPercentages } = get();
+      
+      // If using global percentages, convert the array format to object format
+      if (applyGlobally && globalPercentages && distributionStrategy === 'manual') {
+        const globalPercentagesObj: Record<string, number> = {};
+        globalPercentages.weeks.forEach(wp => {
+          globalPercentagesObj[wp.weekLabel] = wp.percentage;
+        });
+        percentages = globalPercentagesObj;
+      }
       
       if (applyGlobally) {
         // Apply to all filteredCampaigns (which respect client filtering)
