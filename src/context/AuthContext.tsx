@@ -1,6 +1,4 @@
-
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 // Define user interface
@@ -29,7 +27,7 @@ interface AuthContextType {
   user: User | null;
   users: User[];
   isLoading: boolean;
-  session: Session | null; // Added session property to fix the type error
+  session: Session | null;
   selectUser: (userId: string) => void;
   signOut: () => void;
 }
@@ -47,8 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     access_token: 'mock-token-for-' + defaultUser.id,
     user: defaultUser
   });
-  
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Auto-select the default user to bypass authentication
@@ -75,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       toast.success("Connexion réussie");
-      navigate('/');
+      // Instead of using useNavigate, we'll let the component handle navigation
     } catch (error) {
       console.error('User selection error:', error);
       toast.error("Erreur lors de la sélection de l'utilisateur");
@@ -90,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       access_token: 'mock-token-for-' + defaultUser.id,
       user: defaultUser
     });
-    navigate('/');
+    // Let the component handle navigation
   };
 
   return (

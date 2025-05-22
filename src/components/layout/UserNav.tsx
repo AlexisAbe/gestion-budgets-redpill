@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { BackupManager } from '@/components/backup/BackupManager';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Archive } from "lucide-react";
@@ -23,6 +24,7 @@ import { Archive } from "lucide-react";
 export function UserNav() {
   const { user, signOut } = useAuth();
   const [showBackups, setShowBackups] = useState(false);
+  const navigate = useNavigate();
 
   // Extract user's initials for the avatar
   const getInitials = () => {
@@ -32,6 +34,11 @@ export function UserNav() {
       .map((n) => n[0])
       .join("")
       .toUpperCase();
+  };
+
+  const handleSignOut = () => {
+    signOut();
+    navigate('/');
   };
 
   return (
@@ -68,7 +75,7 @@ export function UserNav() {
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => signOut()}>
+          <DropdownMenuItem onClick={handleSignOut}>
             Se déconnecter
           </DropdownMenuItem>
         </DropdownMenuContent>
