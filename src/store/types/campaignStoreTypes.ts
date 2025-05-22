@@ -13,7 +13,7 @@ export interface CampaignState {
   deleteCampaign: (campaignId: string) => Promise<void>;
   updateWeeklyBudget: (campaignId: string, weekLabel: string, amount: number) => Promise<void>;
   updateActualBudget: (campaignId: string, weekLabel: string, amount: number) => Promise<void>;
-  autoDistributeBudget: (campaignId: string, distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual', percentages?: Record<string, number>) => Promise<void>;
+  autoDistributeBudget: (campaignId: string, distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual', percentagesOrApplyGlobally?: Record<string, number> | boolean) => Promise<void>;
   resetStore: () => void;
 }
 

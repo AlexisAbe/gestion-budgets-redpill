@@ -16,7 +16,7 @@ export const createAutoDistributeBudgetSlice = (set: any, get: () => CampaignSta
       
       if (typeof percentagesOrApplyGlobally === 'boolean') {
         applyGlobally = percentagesOrApplyGlobally;
-      } else {
+      } else if (percentagesOrApplyGlobally) {
         percentages = percentagesOrApplyGlobally;
       }
 

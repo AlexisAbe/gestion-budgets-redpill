@@ -16,8 +16,7 @@ export interface CampaignState {
   autoDistributeBudget: (
     campaignId: string, 
     distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual', 
-    percentages?: Record<string, number>,
-    applyGlobally?: boolean
+    percentagesOrApplyGlobally?: Record<string, number> | boolean
   ) => Promise<void>;
   resetStore: () => void;
 }
