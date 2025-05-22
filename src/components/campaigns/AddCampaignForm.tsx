@@ -8,18 +8,20 @@ import { useCampaignStore } from '@/store/campaignStore';
 import { MediaChannel, MarketingObjective, AdSet } from '@/types/campaign';
 import { formatCurrency } from '@/utils/budgetUtils';
 import { toast } from '@/hooks/use-toast';
-import { PlusCircle, AlertCircle } from 'lucide-react';
+import { PlusCircle, AlertCircle, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getCampaignWeeks } from '@/utils/dateUtils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AdSetForm } from '@/components/adSets/AdSetForm';
 import { useAdSetStore } from '@/store/adSetStore';
 import { useClientStore } from '@/store/clientStore';
+import { useGlobalBudgetStore } from '@/store/globalBudgetStore';
 
 export function AddCampaignForm() {
-  const { addCampaign, isLoading, weeks } = useCampaignStore();
+  const { addCampaign, isLoading, weeks, autoDistributeBudget } = useCampaignStore();
   const { addAdSet } = useAdSetStore();
   const { selectedClientId } = useClientStore();
+  const { weeklyPercentages, isInitialized } = useGlobalBudgetStore();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     mediaChannel: 'META' as MediaChannel,
@@ -36,6 +38,7 @@ export function AddCampaignForm() {
   const [includeAdSets, setIncludeAdSets] = useState(false);
   const [adSetsData, setAdSetsData] = useState<Array<Omit<AdSet, "id" | "createdAt" | "updatedAt">>>([]);
   const [currentTab, setCurrentTab] = useState<'basic' | 'adsets'>('basic');
+  const [useGlobalPercentages, setUseGlobalPercentages] = useState(false);
 
   const handleInputChange = (field: string, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -120,17 +123,11 @@ export function AddCampaignForm() {
       // Create initial empty weekly budgets object
       const weeklyBudgets: Record<string, number> = {};
       
-      // Only if we have weeks for the campaign, distribute the budget evenly
+      // Only if we have weeks for the campaign, create an initial budget structure
       if (campaignWeekNumbers.length > 0) {
-        const weeklyAmount = Math.floor(formData.totalBudget / campaignWeekNumbers.length);
-        const remainder = formData.totalBudget - (weeklyAmount * (campaignWeekNumbers.length - 1));
-        
-        // Distribute budget evenly except for the last week which gets the remainder
-        campaignWeekNumbers.forEach((weekNum, index) => {
+        campaignWeekNumbers.forEach((weekNum) => {
           const weekLabel = `S${weekNum}`;
-          weeklyBudgets[weekLabel] = (index === campaignWeekNumbers.length - 1) 
-            ? remainder 
-            : weeklyAmount;
+          weeklyBudgets[weekLabel] = 0; // Initialize with zeros
         });
       }
 
@@ -139,6 +136,14 @@ export function AddCampaignForm() {
         weeklyBudgets,
         clientId: selectedClientId
       });
+      
+      if (newCampaign && useGlobalPercentages && isInitialized) {
+        // Apply global percentages distribution if selected
+        await autoDistributeBudget(newCampaign.id, 'global');
+      } else if (newCampaign) {
+        // Apply even distribution by default
+        await autoDistributeBudget(newCampaign.id, 'even');
+      }
       
       // If ad sets are included and campaign was created successfully
       if (includeAdSets && adSetsData.length > 0 && newCampaign) {
@@ -167,6 +172,7 @@ export function AddCampaignForm() {
       });
       setAdSetsData([]);
       setIncludeAdSets(false);
+      setUseGlobalPercentages(false);
       
       toast({
         title: "Succès",
@@ -190,6 +196,8 @@ export function AddCampaignForm() {
     setAdSetsData(newAdSets);
   };
 
+  const hasGlobalPercentages = isInitialized && Object.keys(weeklyPercentages).length > 0;
+
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
       if (isSubmitting) return; // Prevent closing while submitting
@@ -202,6 +210,7 @@ export function AddCampaignForm() {
         setIncludeAdSets(false);
         setAdSetsData([]);
         setCurrentTab('basic');
+        setUseGlobalPercentages(false);
       }
     }}>
       <DialogTrigger asChild>
@@ -365,6 +374,44 @@ export function AddCampaignForm() {
                 </p>
               )}
             </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="useGlobalPercentages" 
+                checked={useGlobalPercentages}
+                onCheckedChange={(checked) => setUseGlobalPercentages(!!checked)}
+                disabled={isSubmitting || !hasGlobalPercentages}
+              />
+              <Label 
+                htmlFor="useGlobalPercentages" 
+                className={`cursor-pointer ${!hasGlobalPercentages ? 'text-muted-foreground' : ''}`}
+              >
+                Utiliser la répartition globale des budgets par semaine
+              </Label>
+            </div>
+            
+            {!hasGlobalPercentages && (
+              <Alert variant="default" className="bg-amber-50">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Aucune répartition globale n'est définie. Vous pouvez en définir une dans les paramètres.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {useGlobalPercentages && hasGlobalPercentages && (
+              <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
+                <p>La répartition suivante sera appliquée:</p>
+                <ul className="mt-2 grid grid-cols-4 gap-2">
+                  {Object.entries(weeklyPercentages).map(([week, percent]) => (
+                    <li key={week} className="flex justify-between">
+                      <span>{week}:</span>
+                      <span className="font-medium">{percent}%</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="flex items-center space-x-2">
               <Checkbox 

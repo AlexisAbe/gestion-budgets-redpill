@@ -2,6 +2,7 @@
 import { CampaignState } from '../types/campaignStoreTypes';
 import { updateWeeklyBudgetService, autoDistributeBudgetService, fetchCampaignsService } from '../services/campaign';
 import { useClientStore } from '../clientStore';
+import { useGlobalBudgetStore } from '../globalBudgetStore';
 
 export const createBudgetActions = (set: any, get: () => CampaignState) => ({
   updateWeeklyBudget: async (campaignId: string, weekLabel: string, amount: number) => {
@@ -61,19 +62,25 @@ export const createBudgetActions = (set: any, get: () => CampaignState) => ({
   
   autoDistributeBudget: async (
     campaignId: string, 
-    distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual',
+    distributionStrategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual' | 'global',
     percentages?: Record<string, number>
   ) => {
     try {
       // Get the weeks from the store to pass to the service
       const currentWeeks = get().weeks;
       
+      // If strategy is 'global', use the global percentages
+      let actualPercentages = percentages;
+      if (distributionStrategy === 'global') {
+        actualPercentages = useGlobalBudgetStore.getState().weeklyPercentages;
+      }
+      
       await autoDistributeBudgetService(
         campaignId, 
-        distributionStrategy,
+        distributionStrategy === 'global' ? 'manual' : distributionStrategy, // Convert 'global' to 'manual' with global percentages
         get().campaigns, 
         currentWeeks, 
-        percentages
+        actualPercentages
       );
       
       const updatedCampaigns = await fetchCampaignsService();
@@ -92,5 +99,9 @@ export const createBudgetActions = (set: any, get: () => CampaignState) => ({
       console.error('Error auto distributing budget:', error);
       set({ error: error instanceof Error ? error.message : 'An unknown error occurred' });
     }
+  },
+  
+  saveGlobalPercentages: (percentages: Record<string, number>) => {
+    useGlobalBudgetStore.getState().setWeeklyPercentages(percentages);
   }
 });
