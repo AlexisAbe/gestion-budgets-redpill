@@ -39,7 +39,7 @@ export function GlobalBudgetSettings() {
   const [newConfigName, setNewConfigName] = useState('');
   const [activeTab, setActiveTab] = useState('edit');
   const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
-  const [distributionStrategy, setDistributionStrategy] = useState<string>('manual');
+  const [distributionStrategy, setDistributionStrategy] = useState<'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual' | 'global'>('manual');
   const [selectedWeeks, setSelectedWeeks] = useState<string[]>([]);
 
   // Initialize percentages if needed
@@ -156,8 +156,8 @@ export function GlobalBudgetSettings() {
       }
     });
     
-    const newId = addConfiguration(newConfigName, newPercentages);
-    setActiveConfiguration(newId);
+    addConfiguration(newConfigName, newPercentages);
+    
     setNewConfigName('');
     
     toast({
@@ -230,7 +230,7 @@ export function GlobalBudgetSettings() {
       try {
         await autoDistributeBudget(
           campaignId,
-          distributionStrategy === 'manual' ? 'manual' : distributionStrategy,
+          distributionStrategy,
           distributionStrategy === 'manual' ? percentagesToApply : undefined
         );
       } catch (error) {
@@ -411,7 +411,10 @@ export function GlobalBudgetSettings() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <h3 className="text-sm font-medium">Stratégie de distribution</h3>
-                    <Select value={distributionStrategy} onValueChange={setDistributionStrategy}>
+                    <Select
+                      value={distributionStrategy}
+                      onValueChange={(value: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual' | 'global') => setDistributionStrategy(value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Choisissez une stratégie" />
                       </SelectTrigger>
