@@ -10,7 +10,6 @@ import { Settings, AlertCircle, Plus, Trash2, Save } from 'lucide-react';
 import { useGlobalBudgetStore } from '@/store/globalBudgetStore';
 import { useCampaignStore } from '@/store/campaignStore';
 import { toast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -35,12 +34,12 @@ export function GlobalBudgetSettings() {
   const [totalPercentage, setTotalPercentage] = useState(0);
   const [error, setError] = useState('');
 
-  // New state for configuration management
+  // States for simplified configuration
   const [newConfigName, setNewConfigName] = useState('');
-  const [activeTab, setActiveTab] = useState('edit');
   const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
   const [distributionStrategy, setDistributionStrategy] = useState<'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual' | 'global'>('manual');
   const [selectedWeeks, setSelectedWeeks] = useState<string[]>([]);
+  const [currentView, setCurrentView] = useState<'edit' | 'manage' | 'apply'>('edit');
 
   // Initialize percentages if needed
   useEffect(() => {
@@ -206,7 +205,7 @@ export function GlobalBudgetSettings() {
       return;
     }
 
-    if (!activeConfigId) {
+    if (!activeConfigId && distributionStrategy === 'global') {
       toast({
         title: "Erreur",
         description: "Aucune configuration active",
@@ -216,14 +215,8 @@ export function GlobalBudgetSettings() {
     }
 
     // Get the percentages from the active configuration
-    const configPercentages = budgetConfigurations[activeConfigId]?.percentages || {};
-    
-    // Filter percentages to only include selected weeks if any are selected
-    const percentagesToApply = selectedWeeks.length > 0 
-      ? Object.entries(configPercentages)
-          .filter(([week]) => selectedWeeks.includes(week))
-          .reduce((obj, [week, value]) => ({ ...obj, [week]: value }), {} as Record<string, number>)
-      : configPercentages;
+    const configPercentages = distributionStrategy === 'global' ? 
+      (budgetConfigurations[activeConfigId]?.percentages || {}) : undefined;
     
     // Apply to each selected campaign
     for (const campaignId of selectedCampaigns) {
@@ -231,7 +224,8 @@ export function GlobalBudgetSettings() {
         await autoDistributeBudget(
           campaignId,
           distributionStrategy,
-          distributionStrategy === 'manual' ? percentagesToApply : undefined
+          distributionStrategy === 'manual' || distributionStrategy === 'global' ? 
+            configPercentages || localPercentages : undefined
         );
       } catch (error) {
         console.error(`Error applying budget to campaign ${campaignId}:`, error);
@@ -247,7 +241,228 @@ export function GlobalBudgetSettings() {
       title: "Succès",
       description: `Budget appliqué à ${selectedCampaigns.length} campagne(s)`
     });
+    
+    setIsDialogOpen(false);
   };
+
+  // Simplified UI components
+  const CampaignSelectionStep = () => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium">Sélectionnez les campagnes</h3>
+      <ScrollArea className="h-[280px] border rounded-md p-3">
+        {campaigns.length === 0 ? (
+          <div className="text-center text-muted-foreground p-4">
+            Aucune campagne disponible
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {campaigns.map(campaign => (
+              <div 
+                key={campaign.id} 
+                className="flex items-center space-x-2 p-2 hover:bg-accent rounded-md cursor-pointer"
+                onClick={() => handleToggleCampaign(campaign.id)}
+              >
+                <Checkbox 
+                  id={`campaign-${campaign.id}`}
+                  checked={selectedCampaigns.includes(campaign.id)}
+                  onCheckedChange={() => handleToggleCampaign(campaign.id)}
+                />
+                <Label 
+                  htmlFor={`campaign-${campaign.id}`}
+                  className="cursor-pointer flex-grow"
+                >
+                  {campaign.name}
+                </Label>
+              </div>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  );
+
+  const StrategySelectionStep = () => {
+    const hasGlobalConfig = Object.keys(budgetConfigurations).length > 0;
+    
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Stratégie de distribution</h3>
+        <Select
+          value={distributionStrategy}
+          onValueChange={(value: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual' | 'global') => setDistributionStrategy(value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Choisissez une stratégie" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="even">Distribution égale</SelectItem>
+            <SelectItem value="front-loaded">Chargée en début</SelectItem>
+            <SelectItem value="back-loaded">Chargée en fin</SelectItem>
+            <SelectItem value="bell-curve">Courbe en cloche</SelectItem>
+            <SelectItem value="manual">Distribution manuelle (configuration)</SelectItem>
+            <SelectItem value="global" disabled={!hasGlobalConfig}>Utiliser configuration globale</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        {distributionStrategy === 'global' && (
+          <div className="mt-2">
+            <Label>Configuration à utiliser</Label>
+            <Select
+              value={activeConfigId || ''}
+              onValueChange={(id) => id && handleSelectConfiguration(id)}
+              disabled={Object.keys(budgetConfigurations).length === 0}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner une configuration" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(budgetConfigurations).map(([id, config]) => (
+                  <SelectItem key={id} value={id}>{config.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const WeekSelectionStep = () => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium">Semaines ciblées (optionnel)</h3>
+      <p className="text-sm text-muted-foreground">
+        Si vous ne sélectionnez aucune semaine, toutes les semaines seront concernées.
+      </p>
+      <ScrollArea className="h-[200px] border rounded-md p-3">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {weeks.map(week => (
+            <div 
+              key={week.weekLabel} 
+              className="flex items-center space-x-2 p-1 hover:bg-accent rounded-md cursor-pointer"
+              onClick={() => handleToggleWeek(week.weekLabel)}
+            >
+              <Checkbox 
+                id={`week-select-${week.weekLabel}`} 
+                checked={selectedWeeks.includes(week.weekLabel)}
+                onCheckedChange={() => handleToggleWeek(week.weekLabel)}
+              />
+              <label 
+                htmlFor={`week-select-${week.weekLabel}`}
+                className="text-sm cursor-pointer"
+              >
+                {week.weekLabel}
+              </label>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
+  const ManualDistributionStep = () => (
+    <div className="space-y-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Répartition manuelle</h3>
+        <Button variant="outline" size="sm" onClick={handleEvenDistribution}>
+          Distribution égale
+        </Button>
+      </div>
+      
+      <ScrollArea className="h-[300px] pr-4">
+        <div className="grid grid-cols-2 gap-4">
+          {weeks.map((week) => (
+            <div key={week.weekLabel} className="flex items-center justify-between gap-2">
+              <Label htmlFor={`week-${week.weekLabel}`} className="w-20 flex-shrink-0">
+                {week.weekLabel}
+              </Label>
+              <div className="flex items-center gap-2 flex-grow">
+                <Input
+                  id={`week-${week.weekLabel}`}
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={localPercentages[week.weekLabel] || 0}
+                  onChange={(e) => handlePercentageChange(week.weekLabel, e.target.value)}
+                  className="w-full"
+                />
+                <span className="flex-shrink-0">%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+      
+      <div className="mt-4 flex justify-between items-center">
+        <span>Total:</span>
+        <span className={`font-bold ${totalPercentage !== 100 ? 'text-red-500' : 'text-green-500'}`}>
+          {totalPercentage}%
+        </span>
+      </div>
+    </div>
+  );
+
+  const ManageConfigurationsStep = () => (
+    <div className="space-y-4">
+      <div className="flex items-end gap-2 mb-4">
+        <div className="space-y-2 flex-1">
+          <Label htmlFor="new-config-name">Nouvelle configuration</Label>
+          <Input 
+            id="new-config-name"
+            placeholder="Nom de la configuration" 
+            value={newConfigName} 
+            onChange={e => setNewConfigName(e.target.value)} 
+          />
+        </div>
+        <Button onClick={handleAddConfiguration}>
+          <Plus className="h-4 w-4 mr-2" /> Ajouter
+        </Button>
+      </div>
+      
+      <div className="border rounded-md">
+        <div className="bg-muted px-4 py-2 border-b">
+          <h3 className="font-medium">Configurations disponibles</h3>
+        </div>
+        <ScrollArea className="h-[240px]">
+          {Object.entries(budgetConfigurations).length === 0 ? (
+            <div className="p-4 text-center text-muted-foreground">
+              Aucune configuration disponible
+            </div>
+          ) : (
+            <div className="divide-y">
+              {Object.entries(budgetConfigurations).map(([id, config]) => (
+                <div 
+                  key={id} 
+                  className={`flex items-center justify-between p-3 hover:bg-accent cursor-pointer ${
+                    id === activeConfigId ? 'bg-accent' : ''
+                  }`}
+                  onClick={() => handleSelectConfiguration(id)}
+                >
+                  <span className="font-medium">{config.name}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteConfiguration(id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -296,217 +511,62 @@ export function GlobalBudgetSettings() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Configurer la répartition globale des budgets</DialogTitle>
+            <DialogTitle>Répartition budgétaire</DialogTitle>
           </DialogHeader>
           
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="mb-4 w-full">
-              <TabsTrigger value="edit" className="flex-1">Édition des pourcentages</TabsTrigger>
-              <TabsTrigger value="configs" className="flex-1">Gestion des configurations</TabsTrigger>
-              <TabsTrigger value="apply" className="flex-1">Appliquer aux campagnes</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="edit" className="space-y-4">
-              {error && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
+          <div className="flex flex-col space-y-6">
+            {/* Navigation buttons */}
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant={currentView === 'edit' ? 'default' : 'outline'} 
+                onClick={() => setCurrentView('edit')}
+              >
+                Éditer les pourcentages
+              </Button>
+              <Button 
+                variant={currentView === 'manage' ? 'default' : 'outline'} 
+                onClick={() => setCurrentView('manage')}
+              >
+                Gérer les configurations
+              </Button>
+              <Button 
+                variant={currentView === 'apply' ? 'default' : 'outline'} 
+                onClick={() => setCurrentView('apply')}
+              >
+                Appliquer aux campagnes
+              </Button>
+            </div>
+
+            {/* Content based on current view */}
+            <ScrollArea className="h-[400px]">
+              {currentView === 'edit' && <ManualDistributionStep />}
+              {currentView === 'manage' && <ManageConfigurationsStep />}
+              {currentView === 'apply' && (
+                <div className="space-y-6">
+                  <CampaignSelectionStep />
+                  <StrategySelectionStep />
+                  <WeekSelectionStep />
+                </div>
               )}
-              
-              <div className="flex justify-end mb-4">
-                <Button variant="outline" size="sm" onClick={handleEvenDistribution}>
-                  Distribution égale
-                </Button>
-              </div>
-              
-              <ScrollArea className="h-[400px] pr-4">
-                <div className="grid grid-cols-2 gap-4">
-                  {weeks.map((week) => (
-                    <div key={week.weekLabel} className="flex items-center justify-between gap-4">
-                      <Label htmlFor={`week-${week.weekLabel}`} className="w-20 flex-shrink-0">
-                        {week.weekLabel}
-                      </Label>
-                      <div className="flex items-center gap-2 flex-grow">
-                        <Input
-                          id={`week-${week.weekLabel}`}
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={localPercentages[week.weekLabel] || 0}
-                          onChange={(e) => handlePercentageChange(week.weekLabel, e.target.value)}
-                          className="w-full"
-                        />
-                        <span className="flex-shrink-0">%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-              
-              <div className="mt-4 flex justify-between items-center">
-                <span>Total:</span>
-                <span className={`font-bold ${totalPercentage !== 100 ? 'text-red-500' : 'text-green-500'}`}>
-                  {totalPercentage}%
-                </span>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="configs" className="space-y-4">
-              <div className="flex items-end gap-2 mb-4">
-                <div className="space-y-2 flex-1">
-                  <Label htmlFor="new-config-name">Nouvelle configuration</Label>
-                  <Input 
-                    id="new-config-name"
-                    placeholder="Nom de la configuration" 
-                    value={newConfigName} 
-                    onChange={e => setNewConfigName(e.target.value)} 
-                  />
-                </div>
-                <Button onClick={handleAddConfiguration}>
-                  <Plus className="h-4 w-4 mr-2" /> Ajouter
-                </Button>
-              </div>
-              
-              <div className="border rounded-md">
-                <div className="bg-muted px-4 py-2 border-b">
-                  <h3 className="font-medium">Configurations disponibles</h3>
-                </div>
-                <ScrollArea className="h-[240px]">
-                  {Object.entries(budgetConfigurations).length === 0 ? (
-                    <div className="p-4 text-center text-muted-foreground">
-                      Aucune configuration disponible
-                    </div>
-                  ) : (
-                    <div className="divide-y">
-                      {Object.entries(budgetConfigurations).map(([id, config]) => (
-                        <div 
-                          key={id} 
-                          className={`flex items-center justify-between p-3 hover:bg-accent cursor-pointer ${
-                            id === activeConfigId ? 'bg-accent' : ''
-                          }`}
-                          onClick={() => handleSelectConfiguration(id)}
-                        >
-                          <span className="font-medium">{config.name}</span>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteConfiguration(id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="apply" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium">Stratégie de distribution</h3>
-                    <Select
-                      value={distributionStrategy}
-                      onValueChange={(value: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual' | 'global') => setDistributionStrategy(value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choisissez une stratégie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="even">Distribution égale</SelectItem>
-                        <SelectItem value="front-loaded">Chargée en début</SelectItem>
-                        <SelectItem value="back-loaded">Chargée en fin</SelectItem>
-                        <SelectItem value="bell-curve">Courbe en cloche</SelectItem>
-                        <SelectItem value="manual">Distribution manuelle (configuration)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium">Semaines ciblées</h3>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Sélectionnez les semaines auxquelles appliquer cette configuration (si aucune n'est sélectionnée, toutes les semaines seront concernées)
-                    </p>
-                    <ScrollArea className="h-[200px] border rounded-md p-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        {weeks.map(week => (
-                          <div key={week.weekLabel} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`week-select-${week.weekLabel}`} 
-                              checked={selectedWeeks.includes(week.weekLabel)}
-                              onCheckedChange={() => handleToggleWeek(week.weekLabel)}
-                            />
-                            <label 
-                              htmlFor={`week-select-${week.weekLabel}`}
-                              className="text-sm cursor-pointer"
-                            >
-                              {week.weekLabel}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Campagnes à modifier</h3>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Sélectionnez les campagnes auxquelles vous souhaitez appliquer cette configuration
-                  </p>
-                  <ScrollArea className="h-[260px] border rounded-md p-2">
-                    {campaigns.length === 0 ? (
-                      <div className="text-center text-muted-foreground p-4">
-                        Aucune campagne disponible
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {campaigns.map(campaign => (
-                          <div key={campaign.id} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`campaign-${campaign.id}`}
-                              checked={selectedCampaigns.includes(campaign.id)}
-                              onCheckedChange={() => handleToggleCampaign(campaign.id)}
-                            />
-                            <label 
-                              htmlFor={`campaign-${campaign.id}`}
-                              className="text-sm cursor-pointer"
-                            >
-                              {campaign.name}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </div>
-              </div>
-              
-              <div className="flex justify-end">
-                <Button 
-                  onClick={handleApplyToSelectedCampaigns} 
-                  disabled={selectedCampaigns.length === 0 || !activeConfigId}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Appliquer aux campagnes sélectionnées
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
+            </ScrollArea>
+          </div>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Annuler
             </Button>
-            {activeTab === "edit" && (
+            {currentView === 'edit' && (
               <Button onClick={handleSave} disabled={totalPercentage !== 100}>
                 Enregistrer
+              </Button>
+            )}
+            {currentView === 'apply' && (
+              <Button 
+                onClick={handleApplyToSelectedCampaigns}
+                disabled={selectedCampaigns.length === 0}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Appliquer
               </Button>
             )}
           </DialogFooter>
