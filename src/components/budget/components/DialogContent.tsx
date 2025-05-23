@@ -6,12 +6,13 @@ import { ManageConfigurationsStep } from '../steps/ManageConfigurationsStep';
 import { CampaignSelectionStep } from '../steps/CampaignSelectionStep';
 import { StrategySelectionStep } from '../steps/StrategySelectionStep';
 import { WeekSelectionStep } from '../steps/WeekSelectionStep';
-import { Week, Campaign } from '@/types/campaign';
+import { Campaign } from '@/types/campaign';
+import { WeeklyView } from '@/utils/dateUtils'; // Import WeeklyView instead of Week
 
 interface DialogContentProps {
   currentView: 'edit' | 'manage' | 'apply';
   // Edit view props
-  weeks: Week[];
+  weeks: WeeklyView[]; // Changed from Week[] to WeeklyView[]
   localPercentages: Record<string, number>;
   onPercentageChange: (weekLabel: string, value: string) => void;
   onEvenDistribution: () => void;

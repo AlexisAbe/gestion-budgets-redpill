@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -6,15 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-
-interface Week {
-  weekLabel: string;
-  startDate: string;
-  endDate: string;
-}
+import { WeeklyView } from '@/utils/dateUtils'; // Import WeeklyView type
 
 interface ManualDistributionStepProps {
-  weeks: Week[];
+  weeks: WeeklyView[]; // Changed from Week[] to WeeklyView[]
   percentages: Record<string, number>;
   onPercentageChange: (weekLabel: string, value: string) => void;
   onEvenDistribution: () => void;
