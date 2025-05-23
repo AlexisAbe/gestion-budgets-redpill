@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { WeeklyView } from '@/utils/dateUtils'; // Import WeeklyView type
+import { WeeklyView } from '@/utils/dateUtils';
 
 interface WeekSelectionStepProps {
-  weeks: WeeklyView[]; // Changed from Week[] to WeeklyView[]
+  weeks: WeeklyView[];
   selectedWeeks: string[];
   onToggleWeek: (weekLabel: string) => void;
 }
