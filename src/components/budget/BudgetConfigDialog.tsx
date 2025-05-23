@@ -1,19 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent as DialogContainer, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
-import { Save } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-
-import { CampaignSelectionStep } from './steps/CampaignSelectionStep';
-import { StrategySelectionStep } from './steps/StrategySelectionStep';
-import { WeekSelectionStep } from './steps/WeekSelectionStep';
-import { ManualDistributionStep } from './steps/ManualDistributionStep';
-import { ManageConfigurationsStep } from './steps/ManageConfigurationsStep';
 import { LoadingIndicator } from './components/LoadingIndicator';
 import { useGlobalBudgetStore } from '@/store/globalBudgetStore';
 import { useCampaignStore } from '@/store/campaignStore';
+import { DialogNavigation } from './components/DialogNavigation';
+import { DialogContent } from './components/DialogContent';
+import { BudgetDialogFooter } from './components/DialogFooter';
 
 interface BudgetConfigDialogProps {
   open: boolean;
@@ -270,7 +264,7 @@ export function BudgetConfigDialog({ open, onOpenChange }: BudgetConfigDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden">
+      <DialogContainer className="sm:max-w-[800px] max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Répartition budgétaire</DialogTitle>
         </DialogHeader>
@@ -282,98 +276,50 @@ export function BudgetConfigDialog({ open, onOpenChange }: BudgetConfigDialogPro
           />
         ) : (
           <div className="flex flex-col space-y-6">
-            {/* Navigation buttons */}
-            <div className="flex flex-wrap gap-2">
-              <Button 
-                variant={currentView === 'edit' ? 'default' : 'outline'} 
-                onClick={() => setCurrentView('edit')}
-              >
-                Éditer les pourcentages
-              </Button>
-              <Button 
-                variant={currentView === 'manage' ? 'default' : 'outline'} 
-                onClick={() => setCurrentView('manage')}
-              >
-                Gérer les configurations
-              </Button>
-              <Button 
-                variant={currentView === 'apply' ? 'default' : 'outline'} 
-                onClick={() => setCurrentView('apply')}
-              >
-                Appliquer aux campagnes
-              </Button>
-            </div>
+            <DialogNavigation 
+              currentView={currentView} 
+              onViewChange={setCurrentView} 
+            />
 
-            {/* Content based on current view */}
-            <ScrollArea className="h-[400px]">
-              {currentView === 'edit' && (
-                <ManualDistributionStep 
-                  weeks={weeks}
-                  percentages={localPercentages}
-                  onPercentageChange={handlePercentageChange}
-                  onEvenDistribution={handleEvenDistribution}
-                  totalPercentage={totalPercentage}
-                  error={error}
-                />
-              )}
-              
-              {currentView === 'manage' && (
-                <ManageConfigurationsStep
-                  newConfigName={newConfigName}
-                  onNewConfigNameChange={setNewConfigName}
-                  onAddConfiguration={handleAddConfiguration}
-                  budgetConfigurations={budgetConfigurations}
-                  activeConfigId={activeConfigId}
-                  onSelectConfiguration={setActiveConfiguration}
-                  onDeleteConfiguration={handleDeleteConfiguration}
-                />
-              )}
-              
-              {currentView === 'apply' && (
-                <div className="space-y-6">
-                  <CampaignSelectionStep 
-                    campaigns={campaigns}
-                    selectedCampaigns={selectedCampaigns}
-                    onToggleCampaign={handleToggleCampaign}
-                  />
-                  <StrategySelectionStep 
-                    distributionStrategy={distributionStrategy}
-                    onStrategyChange={setDistributionStrategy}
-                    activeConfigId={activeConfigId}
-                    budgetConfigurations={budgetConfigurations}
-                    onSelectConfiguration={setActiveConfiguration}
-                  />
-                  <WeekSelectionStep 
-                    weeks={weeks}
-                    selectedWeeks={selectedWeeks}
-                    onToggleWeek={handleToggleWeek}
-                  />
-                </div>
-              )}
-            </ScrollArea>
+            <DialogContent
+              currentView={currentView}
+              // Edit view props
+              weeks={weeks}
+              localPercentages={localPercentages}
+              onPercentageChange={handlePercentageChange}
+              onEvenDistribution={handleEvenDistribution}
+              totalPercentage={totalPercentage}
+              error={error}
+              // Manage view props
+              newConfigName={newConfigName}
+              onNewConfigNameChange={setNewConfigName}
+              onAddConfiguration={handleAddConfiguration}
+              budgetConfigurations={budgetConfigurations}
+              activeConfigId={activeConfigId}
+              onSelectConfiguration={setActiveConfiguration}
+              onDeleteConfiguration={handleDeleteConfiguration}
+              // Apply view props
+              campaigns={campaigns}
+              selectedCampaigns={selectedCampaigns}
+              onToggleCampaign={handleToggleCampaign}
+              distributionStrategy={distributionStrategy}
+              onStrategyChange={setDistributionStrategy}
+              selectedWeeks={selectedWeeks}
+              onToggleWeek={handleToggleWeek}
+            />
           </div>
         )}
         
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-            Annuler
-          </Button>
-          {currentView === 'edit' && !isLoading && (
-            <Button onClick={handleSave} disabled={totalPercentage !== 100}>
-              Enregistrer
-            </Button>
-          )}
-          {currentView === 'apply' && !isLoading && (
-            <Button 
-              onClick={handleApplyToSelectedCampaigns}
-              disabled={selectedCampaigns.length === 0}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Appliquer
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
+        <BudgetDialogFooter
+          isLoading={isLoading}
+          currentView={currentView}
+          onClose={() => onOpenChange(false)}
+          onSave={handleSave}
+          onApply={handleApplyToSelectedCampaigns}
+          totalPercentage={totalPercentage}
+          selectedCampaigns={selectedCampaigns}
+        />
+      </DialogContainer>
     </Dialog>
   );
 }
