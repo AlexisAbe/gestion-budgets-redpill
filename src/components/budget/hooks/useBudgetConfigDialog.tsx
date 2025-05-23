@@ -56,11 +56,14 @@ export function useBudgetConfigDialog(onClose: () => void) {
     selectedCampaigns: applyBudget.selectedCampaigns,
     distributionStrategy: applyBudget.distributionStrategy,
     selectedWeeks: applyBudget.selectedWeeks,
+    weekPercentages: applyBudget.weekPercentages,
+    weekTotalPercentage: applyBudget.totalPercentage,
     isLoading: applyBudget.isLoading,
     progress: applyBudget.progress,
     handleToggleCampaign: applyBudget.handleToggleCampaign,
     setDistributionStrategy: applyBudget.setDistributionStrategy,
     handleToggleWeek: applyBudget.handleToggleWeek,
+    handleWeekPercentageChange: applyBudget.handlePercentageChange,
     handleApplyToSelectedCampaigns: applyBudget.handleApplyToSelectedCampaigns
   };
 }

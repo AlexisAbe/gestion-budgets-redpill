@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { useGlobalBudgetStore } from '@/store/globalBudgetStore';
 import { useCampaignStore } from '@/store/campaignStore';
@@ -19,9 +19,50 @@ export function useApplyBudget(onClose: () => void) {
   const [distributionStrategy, setDistributionStrategy] = useState<'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual' | 'global'>('manual');
   const [selectedWeeks, setSelectedWeeks] = useState<string[]>([]);
   
+  // Nouvel état pour les pourcentages par semaine
+  const [weekPercentages, setWeekPercentages] = useState<Record<string, number>>({});
+  const [totalPercentage, setTotalPercentage] = useState(0);
+  
   // Loading state
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  // Recalculer le total des pourcentages quand les pourcentages changent
+  useEffect(() => {
+    const total = selectedWeeks.reduce((sum, weekLabel) => sum + (weekPercentages[weekLabel] || 0), 0);
+    setTotalPercentage(total);
+  }, [weekPercentages, selectedWeeks]);
+
+  // Mise à jour des pourcentages quand la sélection de semaines change
+  useEffect(() => {
+    if (selectedWeeks.length > 0) {
+      // Conserver uniquement les semaines sélectionnées
+      const filteredPercentages: Record<string, number> = {};
+      selectedWeeks.forEach(weekLabel => {
+        filteredPercentages[weekLabel] = weekPercentages[weekLabel] || 0;
+      });
+      setWeekPercentages(filteredPercentages);
+      
+      // Distribution égale par défaut lors de l'ajout/suppression de semaines
+      if (selectedWeeks.length !== Object.keys(filteredPercentages).filter(key => filteredPercentages[key] > 0).length) {
+        const evenPercentage = Math.floor(100 / selectedWeeks.length);
+        const remainder = 100 - (evenPercentage * selectedWeeks.length);
+        
+        const evenDistribution: Record<string, number> = {};
+        selectedWeeks.forEach((weekLabel, index) => {
+          if (index === selectedWeeks.length - 1) {
+            evenDistribution[weekLabel] = evenPercentage + remainder;
+          } else {
+            evenDistribution[weekLabel] = evenPercentage;
+          }
+        });
+        setWeekPercentages(evenDistribution);
+      }
+    } else {
+      setWeekPercentages({});
+      setTotalPercentage(0);
+    }
+  }, [selectedWeeks]);
 
   const handleToggleCampaign = (campaignId: string) => {
     setSelectedCampaigns(prev => 
@@ -37,6 +78,13 @@ export function useApplyBudget(onClose: () => void) {
         ? prev.filter(week => week !== weekLabel)
         : [...prev, weekLabel]
     );
+  };
+  
+  const handlePercentageChange = (weekLabel: string, percentage: number) => {
+    setWeekPercentages(prev => ({
+      ...prev,
+      [weekLabel]: percentage
+    }));
   };
 
   const handleApplyToSelectedCampaigns = async () => {
@@ -57,14 +105,31 @@ export function useApplyBudget(onClose: () => void) {
       });
       return;
     }
+    
+    // Vérification des pourcentages si des semaines sont sélectionnées
+    if (selectedWeeks.length > 0 && totalPercentage !== 100) {
+      toast({
+        title: "Erreur",
+        description: `Le total des pourcentages doit être égal à 100%. Actuellement: ${totalPercentage}%`,
+        variant: "destructive"
+      });
+      return;
+    }
 
     // Start loading state
     setIsLoading(true);
     setProgress(0);
     
-    // Get the percentages from the active configuration
-    const configPercentages = distributionStrategy === 'global' ? 
-      (budgetConfigurations[activeConfigId]?.percentages || {}) : undefined;
+    // Get the percentages from the active configuration or from selected weeks
+    let configPercentages: Record<string, number> | undefined;
+    
+    if (distributionStrategy === 'global') {
+      configPercentages = budgetConfigurations[activeConfigId]?.percentages || {};
+    } else if (distributionStrategy === 'manual' && selectedWeeks.length > 0) {
+      configPercentages = weekPercentages;
+    } else {
+      configPercentages = weeklyPercentages;
+    }
     
     // Apply to each selected campaign
     const totalCampaigns = selectedCampaigns.length;
@@ -76,8 +141,8 @@ export function useApplyBudget(onClose: () => void) {
         await autoDistributeBudget(
           campaignId,
           distributionStrategy,
-          distributionStrategy === 'manual' || distributionStrategy === 'global' ? 
-            configPercentages || weeklyPercentages : undefined
+          configPercentages,
+          selectedWeeks.length > 0 ? selectedWeeks : undefined
         );
         // Update progress after each successful application
         const currentProgress = ((i + 1) / totalCampaigns) * 100;
@@ -107,11 +172,14 @@ export function useApplyBudget(onClose: () => void) {
     selectedCampaigns,
     distributionStrategy,
     selectedWeeks,
+    weekPercentages,
+    totalPercentage,
     isLoading,
     progress,
     handleToggleCampaign,
     setDistributionStrategy,
     handleToggleWeek,
+    handlePercentageChange,
     handleApplyToSelectedCampaigns
   };
 }

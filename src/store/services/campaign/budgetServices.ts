@@ -64,10 +64,11 @@ export async function updateWeeklyBudgetService(
 // Auto-distribute the budget for a campaign
 export async function autoDistributeBudgetService(
   campaignId: string, 
-  method: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual',
+  method: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual' | 'global',
   campaigns: Campaign[],
   weeks: WeeklyView[],
-  percentages?: Record<string, number>
+  percentages?: Record<string, number>,
+  selectedWeeks?: string[]
 ): Promise<void> {
   try {
     const campaign = campaigns.find(c => c.id === campaignId);
@@ -79,14 +80,33 @@ export async function autoDistributeBudgetService(
     
     let newWeeklyBudgets: Record<string, number> = {};
     
+    // Si des semaines spécifiques sont sélectionnées, on filtre les semaines
+    const weeksToUse = selectedWeeks && selectedWeeks.length > 0
+      ? weeks.filter(week => selectedWeeks.includes(week.weekLabel))
+      : weeks;
+    
     // Distribute based on selected method
-    if (method === 'manual' && percentages) {
-      newWeeklyBudgets = distributeByPercentages(campaign, percentages);
+    if ((method === 'manual' || method === 'global') && percentages) {
+      // Si des semaines sont sélectionnées, on ne considère que les pourcentages pour ces semaines
+      if (selectedWeeks && selectedWeeks.length > 0) {
+        const filteredPercentages: Record<string, number> = {};
+        
+        // Copier uniquement les pourcentages des semaines sélectionnées
+        selectedWeeks.forEach(weekLabel => {
+          if (percentages[weekLabel] !== undefined) {
+            filteredPercentages[weekLabel] = percentages[weekLabel];
+          }
+        });
+        
+        newWeeklyBudgets = distributeByPercentages(campaign, filteredPercentages);
+      } else {
+        newWeeklyBudgets = distributeByPercentages(campaign, percentages);
+      }
     } else if (method === 'even') {
-      newWeeklyBudgets = distributeEvenlyAcrossWeeks(campaign, weeks);
+      newWeeklyBudgets = distributeEvenlyAcrossWeeks(campaign, weeksToUse);
     } else if (method === 'front-loaded' || method === 'back-loaded' || method === 'bell-curve') {
       // Only pass valid curve types to distributeByCurve
-      newWeeklyBudgets = distributeByCurve(campaign, weeks, method);
+      newWeeklyBudgets = distributeByCurve(campaign, weeksToUse, method);
     } else {
       console.error(`Invalid distribution method: ${method}`);
       return;

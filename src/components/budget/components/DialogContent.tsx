@@ -34,6 +34,9 @@ interface DialogContentProps {
   onStrategyChange: (strategy: 'even' | 'front-loaded' | 'back-loaded' | 'bell-curve' | 'manual' | 'global') => void;
   selectedWeeks: string[];
   onToggleWeek: (weekLabel: string) => void;
+  weekPercentages?: Record<string, number>;
+  onWeekPercentageChange?: (weekLabel: string, percentage: number) => void;
+  weekTotalPercentage?: number;
 }
 
 export function DialogContent({ 
@@ -57,7 +60,10 @@ export function DialogContent({
   distributionStrategy,
   onStrategyChange,
   selectedWeeks,
-  onToggleWeek
+  onToggleWeek,
+  weekPercentages = {},
+  onWeekPercentageChange,
+  weekTotalPercentage = 0
 }: DialogContentProps) {
   return (
     <ScrollArea className="h-[400px]">
@@ -102,6 +108,9 @@ export function DialogContent({
             weeks={weeks}
             selectedWeeks={selectedWeeks}
             onToggleWeek={onToggleWeek}
+            weekPercentages={weekPercentages}
+            onPercentageChange={onWeekPercentageChange}
+            totalPercentage={weekTotalPercentage}
           />
         </div>
       )}

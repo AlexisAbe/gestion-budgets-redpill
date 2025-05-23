@@ -30,6 +30,8 @@ export function BudgetConfigDialog({ open, onOpenChange }: BudgetConfigDialogPro
     selectedCampaigns,
     distributionStrategy,
     selectedWeeks,
+    weekPercentages,
+    weekTotalPercentage,
     handlePercentageChange,
     handleEvenDistribution,
     handleSave,
@@ -39,6 +41,7 @@ export function BudgetConfigDialog({ open, onOpenChange }: BudgetConfigDialogPro
     handleToggleCampaign,
     setDistributionStrategy,
     handleToggleWeek,
+    handleWeekPercentageChange,
     handleApplyToSelectedCampaigns
   } = useBudgetConfigDialog(() => onOpenChange(false));
 
@@ -86,6 +89,9 @@ export function BudgetConfigDialog({ open, onOpenChange }: BudgetConfigDialogPro
               onStrategyChange={setDistributionStrategy}
               selectedWeeks={selectedWeeks}
               onToggleWeek={handleToggleWeek}
+              weekPercentages={weekPercentages}
+              onWeekPercentageChange={handleWeekPercentageChange}
+              weekTotalPercentage={weekTotalPercentage}
             />
           </div>
         )}
