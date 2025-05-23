@@ -11,6 +11,7 @@ import { StrategySelectionStep } from './steps/StrategySelectionStep';
 import { WeekSelectionStep } from './steps/WeekSelectionStep';
 import { ManualDistributionStep } from './steps/ManualDistributionStep';
 import { ManageConfigurationsStep } from './steps/ManageConfigurationsStep';
+import { LoadingIndicator } from './components/LoadingIndicator';
 import { useGlobalBudgetStore } from '@/store/globalBudgetStore';
 import { useCampaignStore } from '@/store/campaignStore';
 
@@ -40,6 +41,10 @@ export function BudgetConfigDialog({ open, onOpenChange }: BudgetConfigDialogPro
   const [totalPercentage, setTotalPercentage] = useState(0);
   const [error, setError] = useState('');
   
+  // Loading state
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  
   // States for configuration management
   const [newConfigName, setNewConfigName] = useState('');
   
@@ -58,6 +63,8 @@ export function BudgetConfigDialog({ open, onOpenChange }: BudgetConfigDialogPro
     if (open) {
       setLocalPercentages({...weeklyPercentages});
       calculateTotal({...weeklyPercentages});
+      setIsLoading(false);
+      setProgress(0);
     }
   }, [open, weeklyPercentages]);
 
@@ -216,12 +223,20 @@ export function BudgetConfigDialog({ open, onOpenChange }: BudgetConfigDialogPro
       return;
     }
 
+    // Start loading state
+    setIsLoading(true);
+    setProgress(0);
+    
     // Get the percentages from the active configuration
     const configPercentages = distributionStrategy === 'global' ? 
       (budgetConfigurations[activeConfigId]?.percentages || {}) : undefined;
     
     // Apply to each selected campaign
-    for (const campaignId of selectedCampaigns) {
+    const totalCampaigns = selectedCampaigns.length;
+    
+    for (let i = 0; i < selectedCampaigns.length; i++) {
+      const campaignId = selectedCampaigns[i];
+      
       try {
         await autoDistributeBudget(
           campaignId,
@@ -229,6 +244,9 @@ export function BudgetConfigDialog({ open, onOpenChange }: BudgetConfigDialogPro
           distributionStrategy === 'manual' || distributionStrategy === 'global' ? 
             configPercentages || localPercentages : undefined
         );
+        // Update progress after each successful application
+        const currentProgress = ((i + 1) / totalCampaigns) * 100;
+        setProgress(currentProgress);
       } catch (error) {
         console.error(`Error applying budget to campaign ${campaignId}:`, error);
         toast({
@@ -244,6 +262,9 @@ export function BudgetConfigDialog({ open, onOpenChange }: BudgetConfigDialogPro
       description: `Budget appliqué à ${selectedCampaigns.length} campagne(s)`
     });
     
+    // End loading state
+    setIsLoading(false);
+    setProgress(0);
     onOpenChange(false);
   };
 
@@ -254,88 +275,95 @@ export function BudgetConfigDialog({ open, onOpenChange }: BudgetConfigDialogPro
           <DialogTitle>Répartition budgétaire</DialogTitle>
         </DialogHeader>
         
-        <div className="flex flex-col space-y-6">
-          {/* Navigation buttons */}
-          <div className="flex flex-wrap gap-2">
-            <Button 
-              variant={currentView === 'edit' ? 'default' : 'outline'} 
-              onClick={() => setCurrentView('edit')}
-            >
-              Éditer les pourcentages
-            </Button>
-            <Button 
-              variant={currentView === 'manage' ? 'default' : 'outline'} 
-              onClick={() => setCurrentView('manage')}
-            >
-              Gérer les configurations
-            </Button>
-            <Button 
-              variant={currentView === 'apply' ? 'default' : 'outline'} 
-              onClick={() => setCurrentView('apply')}
-            >
-              Appliquer aux campagnes
-            </Button>
-          </div>
+        {isLoading ? (
+          <LoadingIndicator 
+            message={`Application du budget aux campagnes sélectionnées (${Math.round(progress)}%)...`} 
+            progress={progress}
+          />
+        ) : (
+          <div className="flex flex-col space-y-6">
+            {/* Navigation buttons */}
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant={currentView === 'edit' ? 'default' : 'outline'} 
+                onClick={() => setCurrentView('edit')}
+              >
+                Éditer les pourcentages
+              </Button>
+              <Button 
+                variant={currentView === 'manage' ? 'default' : 'outline'} 
+                onClick={() => setCurrentView('manage')}
+              >
+                Gérer les configurations
+              </Button>
+              <Button 
+                variant={currentView === 'apply' ? 'default' : 'outline'} 
+                onClick={() => setCurrentView('apply')}
+              >
+                Appliquer aux campagnes
+              </Button>
+            </div>
 
-          {/* Content based on current view */}
-          <ScrollArea className="h-[400px]">
-            {currentView === 'edit' && (
-              <ManualDistributionStep 
-                weeks={weeks}
-                percentages={localPercentages}
-                onPercentageChange={handlePercentageChange}
-                onEvenDistribution={handleEvenDistribution}
-                totalPercentage={totalPercentage}
-                error={error}
-              />
-            )}
-            
-            {currentView === 'manage' && (
-              <ManageConfigurationsStep
-                newConfigName={newConfigName}
-                onNewConfigNameChange={setNewConfigName}
-                onAddConfiguration={handleAddConfiguration}
-                budgetConfigurations={budgetConfigurations}
-                activeConfigId={activeConfigId}
-                onSelectConfiguration={setActiveConfiguration}
-                onDeleteConfiguration={handleDeleteConfiguration}
-              />
-            )}
-            
-            {currentView === 'apply' && (
-              <div className="space-y-6">
-                <CampaignSelectionStep 
-                  campaigns={campaigns}
-                  selectedCampaigns={selectedCampaigns}
-                  onToggleCampaign={handleToggleCampaign}
-                />
-                <StrategySelectionStep 
-                  distributionStrategy={distributionStrategy}
-                  onStrategyChange={setDistributionStrategy}
-                  activeConfigId={activeConfigId}
-                  budgetConfigurations={budgetConfigurations}
-                  onSelectConfiguration={setActiveConfiguration}
-                />
-                <WeekSelectionStep 
+            {/* Content based on current view */}
+            <ScrollArea className="h-[400px]">
+              {currentView === 'edit' && (
+                <ManualDistributionStep 
                   weeks={weeks}
-                  selectedWeeks={selectedWeeks}
-                  onToggleWeek={handleToggleWeek}
+                  percentages={localPercentages}
+                  onPercentageChange={handlePercentageChange}
+                  onEvenDistribution={handleEvenDistribution}
+                  totalPercentage={totalPercentage}
+                  error={error}
                 />
-              </div>
-            )}
-          </ScrollArea>
-        </div>
+              )}
+              
+              {currentView === 'manage' && (
+                <ManageConfigurationsStep
+                  newConfigName={newConfigName}
+                  onNewConfigNameChange={setNewConfigName}
+                  onAddConfiguration={handleAddConfiguration}
+                  budgetConfigurations={budgetConfigurations}
+                  activeConfigId={activeConfigId}
+                  onSelectConfiguration={setActiveConfiguration}
+                  onDeleteConfiguration={handleDeleteConfiguration}
+                />
+              )}
+              
+              {currentView === 'apply' && (
+                <div className="space-y-6">
+                  <CampaignSelectionStep 
+                    campaigns={campaigns}
+                    selectedCampaigns={selectedCampaigns}
+                    onToggleCampaign={handleToggleCampaign}
+                  />
+                  <StrategySelectionStep 
+                    distributionStrategy={distributionStrategy}
+                    onStrategyChange={setDistributionStrategy}
+                    activeConfigId={activeConfigId}
+                    budgetConfigurations={budgetConfigurations}
+                    onSelectConfiguration={setActiveConfiguration}
+                  />
+                  <WeekSelectionStep 
+                    weeks={weeks}
+                    selectedWeeks={selectedWeeks}
+                    onToggleWeek={handleToggleWeek}
+                  />
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        )}
         
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             Annuler
           </Button>
-          {currentView === 'edit' && (
+          {currentView === 'edit' && !isLoading && (
             <Button onClick={handleSave} disabled={totalPercentage !== 100}>
               Enregistrer
             </Button>
           )}
-          {currentView === 'apply' && (
+          {currentView === 'apply' && !isLoading && (
             <Button 
               onClick={handleApplyToSelectedCampaigns}
               disabled={selectedCampaigns.length === 0}
