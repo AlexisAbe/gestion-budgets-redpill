@@ -11,42 +11,15 @@ export function useBudgetConfigDialog(onClose: () => void) {
   // Current view state
   const [currentView, setCurrentView] = useState<'edit' | 'manage' | 'apply'>('edit');
 
-  // Combine all the smaller hooks
-  const {
-    localPercentages,
-    totalPercentage,
-    error,
-    handlePercentageChange,
-    handleEvenDistribution,
-    handleSave,
-  } = useEditBudgetConfig();
-
-  const {
-    newConfigName,
-    setNewConfigName,
-    budgetConfigurations,
-    activeConfigId,
-    handleAddConfiguration,
-    setActiveConfiguration,
-    handleDeleteConfiguration,
-  } = useManageConfigurations();
-
-  const {
-    selectedCampaigns,
-    distributionStrategy,
-    selectedWeeks,
-    isLoading,
-    progress,
-    handleToggleCampaign,
-    setDistributionStrategy,
-    handleToggleWeek,
-    handleApplyToSelectedCampaigns
-  } = useApplyBudget(onClose);
+  // Use the smaller hooks
+  const editBudgetConfig = useEditBudgetConfig();
+  const manageConfigurations = useManageConfigurations();
+  const applyBudget = useApplyBudget(onClose);
 
   // Adapter methods to maintain API compatibility
-  const handleEvenDistributionWrapper = () => handleEvenDistribution(weeks);
-  const handleAddConfigurationWrapper = () => handleAddConfiguration(weeks);
-  const handleSaveWrapper = () => handleSave(onClose);
+  const handleEvenDistributionWrapper = () => editBudgetConfig.handleEvenDistribution(weeks);
+  const handleAddConfigurationWrapper = () => manageConfigurations.handleAddConfiguration(weeks);
+  const handleSaveWrapper = () => editBudgetConfig.handleSave(onClose);
 
   return {
     // Data
@@ -58,31 +31,31 @@ export function useBudgetConfigDialog(onClose: () => void) {
     setCurrentView,
     
     // Edit state and methods
-    localPercentages,
-    totalPercentage,
-    error,
-    handlePercentageChange,
+    localPercentages: editBudgetConfig.localPercentages,
+    totalPercentage: editBudgetConfig.totalPercentage,
+    error: editBudgetConfig.error,
+    handlePercentageChange: editBudgetConfig.handlePercentageChange,
     handleEvenDistribution: handleEvenDistributionWrapper,
     handleSave: handleSaveWrapper,
     
     // Manage state and methods
-    newConfigName,
-    setNewConfigName,
-    budgetConfigurations,
-    activeConfigId,
+    newConfigName: manageConfigurations.newConfigName,
+    setNewConfigName: manageConfigurations.setNewConfigName,
+    budgetConfigurations: manageConfigurations.budgetConfigurations,
+    activeConfigId: manageConfigurations.activeConfigId,
     handleAddConfiguration: handleAddConfigurationWrapper,
-    setActiveConfiguration,
-    handleDeleteConfiguration,
+    setActiveConfiguration: manageConfigurations.setActiveConfiguration,
+    handleDeleteConfiguration: manageConfigurations.handleDeleteConfiguration,
     
     // Apply state and methods
-    selectedCampaigns,
-    distributionStrategy,
-    selectedWeeks,
-    isLoading,
-    progress,
-    handleToggleCampaign,
-    setDistributionStrategy,
-    handleToggleWeek,
-    handleApplyToSelectedCampaigns
+    selectedCampaigns: applyBudget.selectedCampaigns,
+    distributionStrategy: applyBudget.distributionStrategy,
+    selectedWeeks: applyBudget.selectedWeeks,
+    isLoading: applyBudget.isLoading,
+    progress: applyBudget.progress,
+    handleToggleCampaign: applyBudget.handleToggleCampaign,
+    setDistributionStrategy: applyBudget.setDistributionStrategy,
+    handleToggleWeek: applyBudget.handleToggleWeek,
+    handleApplyToSelectedCampaigns: applyBudget.handleApplyToSelectedCampaigns
   };
 }
