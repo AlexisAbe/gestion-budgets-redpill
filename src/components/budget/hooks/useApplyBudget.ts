@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { useGlobalBudgetStore } from '@/store/globalBudgetStore';
@@ -138,13 +137,13 @@ export function useApplyBudget(onClose: () => void) {
       const campaignId = selectedCampaigns[i];
       
       try {
-        // Fix: Correcting the number of arguments to match the function signature
-        // The autoDistributeBudget function expects campaignId, distributionStrategy, percentages, and optionally selectedWeeks
+        // Fix: Adjust parameters to match the autoDistributeBudget function signature
+        // Checking the implementation in store/actions/budgetActions.ts, it expects:
+        // (campaignId, distributionStrategy, percentages?)
         await autoDistributeBudget(
           campaignId,
           distributionStrategy,
-          configPercentages,
-          selectedWeeks.length > 0 ? selectedWeeks : undefined
+          configPercentages
         );
         // Update progress after each successful application
         const currentProgress = ((i + 1) / totalCampaigns) * 100;
