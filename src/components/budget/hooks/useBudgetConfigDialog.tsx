@@ -6,7 +6,12 @@ import { useManageConfigurations } from './useManageConfigurations';
 import { useApplyBudget } from './useApplyBudget';
 
 export function useBudgetConfigDialog(onClose: () => void) {
-  const { weeks, campaigns } = useCampaignStore();
+  const { weeks, campaigns, fetchCampaigns } = useCampaignStore();
+  
+  // Ensure campaigns are fetched when the dialog opens
+  useState(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
   
   // Current view state
   const [currentView, setCurrentView] = useState<'edit' | 'manage' | 'apply'>('edit');
