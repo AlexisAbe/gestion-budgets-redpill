@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCampaignStore } from '@/store/campaignStore';
 import { useEditBudgetConfig } from './useEditBudgetConfig';
 import { useManageConfigurations } from './useManageConfigurations';
@@ -9,7 +9,7 @@ export function useBudgetConfigDialog(onClose: () => void) {
   const { weeks, campaigns, fetchCampaigns } = useCampaignStore();
   
   // Ensure campaigns are fetched when the dialog opens
-  useState(() => {
+  useEffect(() => {
     fetchCampaigns();
   }, [fetchCampaigns]);
   
