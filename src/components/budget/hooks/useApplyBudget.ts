@@ -138,6 +138,8 @@ export function useApplyBudget(onClose: () => void) {
       const campaignId = selectedCampaigns[i];
       
       try {
+        // Fix: Correcting the number of arguments to match the function signature
+        // The autoDistributeBudget function expects campaignId, distributionStrategy, percentages, and optionally selectedWeeks
         await autoDistributeBudget(
           campaignId,
           distributionStrategy,
